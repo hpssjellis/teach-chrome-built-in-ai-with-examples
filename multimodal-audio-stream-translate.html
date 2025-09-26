@@ -54,6 +54,18 @@
             background-color: #eee;
             white-space: pre-wrap;
             margin-top: 10px;
+            overflow-y: auto;
+        }
+        
+        /* New CSS for resizable textareas */
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            /* Allow vertical resizing for better user experience */
+            resize: vertical; 
         }
 
         .my-status {
@@ -108,9 +120,15 @@
     </div>
     
     <div class="my-output-container">
-        <h2>Conversation Log</h2>
-        <p>This box records the full conversation.</p>
-        <div id="myConversationLog" class="my-output-box" style="height: 150px; overflow-y: auto;"></div>
+        <h2>User Log</h2>
+        <p>This box records the user's transcribed conversation.</p>
+        <div id="myUserLog" class="my-output-box" style="height: 150px; overflow-y: auto;"></div>
+    </div>
+
+    <div class="my-output-container">
+        <h2>Translated Log</h2>
+        <p>This box records the translated conversation.</p>
+        <div id="myTranslatedLog" class="my-output-box" style="height: 150px; overflow-y: auto;"></div>
     </div>
 
     <hr style="margin: 40px 0;">
@@ -145,8 +163,9 @@
         const myTranslationOutput = document.getElementById('myTranslationOutput');
         const mySourceLanguageSelect = document.getElementById('mySourceLanguage');
         const myTargetLanguageSelect = document.getElementById('myTargetLanguage');
-        const myConversationLog = document.getElementById('myConversationLog');
-
+        const myUserLog = document.getElementById('myUserLog');
+        const myTranslatedLog = document.getElementById('myTranslatedLog');
+        
         // Function to create and configure the speech recognition object
         function myCreateSpeechRecognition() {
             if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
@@ -207,7 +226,7 @@
                     myTranscriptionOutput.textContent = myFinalTranscript + myInterimTranscript;
 
                     if (myFinalTranscript.trim().length > 0) {
-                        myConversationLog.textContent += `User: ${myFinalTranscript.trim()}\n`;
+                        myUserLog.textContent += myFinalTranscript.trim() + "\n";
                         myProcessTranslation(myFinalTranscript.trim());
                     }
                 };
@@ -240,6 +259,8 @@
             myTranscriptionOutput.textContent = '';
             myTranslationOutput.textContent = '';
             myTranslationStatus.textContent = "Ready.";
+            myUserLog.textContent = ''; // Clear logs on new session
+            myTranslatedLog.textContent = ''; // Clear logs on new session
             mySpeechRecognition.start();
         }
 
@@ -268,11 +289,9 @@
                     myLanguageModelSession = await LanguageModel.create();
                 }
 
-                const mySourceLanguage = mySourceLanguageSelect.value;
                 const myTargetLanguage = myTargetLanguageSelect.value;
-                // FIX: Use a more direct, restrictive prompt for better results
-                const myPrompt = `Translate to ${myTargetLanguage} without any extra words: "${myTextToTranslate}"`;
-
+                const myPrompt = `Translate the following to ${myTargetLanguage} without any extra words or punctuation: "${myTextToTranslate}"`;
+                
                 const myStream = await myLanguageModelSession.prompt(myPrompt, { stream: true });
                 let myTranslatedText = '';
 
@@ -281,8 +300,9 @@
                     myTranslatedText += myChunk;
                 }
                 
-                myConversationLog.textContent += `AI: ${myTranslatedText.trim()}\n`;
-                myConversationLog.scrollTop = myConversationLog.scrollHeight;
+                myTranslatedLog.textContent += myTranslatedText.trim() + "\n";
+                myTranslatedLog.scrollTop = myTranslatedLog.scrollHeight;
+                myUserLog.scrollTop = myUserLog.scrollHeight;
 
                 myStopTimer("Translation complete!");
 
