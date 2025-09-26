@@ -26,7 +26,6 @@ Also these are not for mobile phones.
 
 
 
-1.[all.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/all.html)
 
 1.[chatbot.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/chatbot.html)
 
