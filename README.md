@@ -85,3 +85,17 @@ Also these are not for mobile phones.
 
 1.[writer.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/writer.html)
 
+
+
+
+
+
+
+
+## Summary of Flags and Features 🚩
+
+Prompt API, Multimodal API, Writer API, Rewriter API: These are advanced and experimental features that require enabling a flag, such as chrome://flags/#enable-built-in-ai or chrome://flags/#prompt-api-for-gemini-nano-multimodal-input.
+
+Summarizer API, Translator API, Language Detector API: These are stable, task-specific APIs that generally do not require a flag and are available by default in newer versions of Chrome.
+
+
