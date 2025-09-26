@@ -14,7 +14,6 @@
     <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
         <h2 style="margin-top: 0;">Audio Input</h2>
 
-        <!-- File Upload Section -->
         <p style="font-weight: bold;">Upload an audio file:</p>
         <input type="file" id="myAudioFileInput" accept="audio/*">
         <button id="myExecuteFileButton" onclick="myExecuteFilePrompt()"
@@ -23,7 +22,6 @@
 
         <hr style="margin: 20px 0;">
 
-        <!-- Microphone Recording Section -->
         <p style="font-weight: bold;">Record with your microphone:</p>
         <div style="display: flex; gap: 10px;">
             <button id="myStartRecordingButton" onclick="myStartRecording()"
@@ -104,14 +102,25 @@
 
                 if (!myLanguageModelSession) {
                     myStatus.textContent = 'Creating AI session...';
-                    myLanguageModelSession = await LanguageModel.create();
+                    // FIX #1: Added the expectedInputs parameter to create the multimodal session
+                    myLanguageModelSession = await LanguageModel.create({
+                        expectedInputs: [{
+                            type: 'audio'
+                        }]
+                    });
                     myStatus.textContent = 'Session created. Sending audio for transcription...';
                 }
 
+                // FIX #2: Corrected the prompt structure to conform to the multimodal API
                 const myGeneratedText = await myLanguageModelSession.prompt([{
-                    text: 'Transcribe the following audio:',
-                }, {
-                    audio: myAudioBlob,
+                    role: 'user',
+                    content: [{
+                        type: 'text',
+                        value: 'Transcribe the following audio:'
+                    }, {
+                        type: 'audio',
+                        value: myAudioBlob
+                    }]
                 }]);
 
                 myOutput.value = myGeneratedText;
@@ -155,7 +164,9 @@
             myAudioChunks = [];
 
             try {
-                const myStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const myStream = await navigator.mediaDevices.getUserMedia({
+                    audio: true
+                });
                 myMediaRecorder = new MediaRecorder(myStream);
 
                 myMediaRecorder.ondataavailable = (event) => {
@@ -163,7 +174,9 @@
                 };
 
                 myMediaRecorder.onstop = async () => {
-                    const myAudioBlob = new Blob(myAudioChunks, { type: 'audio/webm' });
+                    const myAudioBlob = new Blob(myAudioChunks, {
+                        type: 'audio/webm'
+                    });
                     myRecordingStatus.textContent = 'Recording stopped. Transcribing...';
                     myStartRecordingButton.disabled = false;
                     myStopRecordingButton.disabled = true;
@@ -200,4 +213,5 @@
         }
     </script>
 </body>
+
 </html>
