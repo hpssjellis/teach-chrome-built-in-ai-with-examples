@@ -111,14 +111,31 @@
 
                 if (!myLanguageModelSession) {
                     myStatus.textContent = 'Creating AI session...';
-                    myLanguageModelSession = await LanguageModel.create();
+                    // FIX #1: Added the expectedInputs parameter for image input
+                    myLanguageModelSession = await LanguageModel.create({
+                        expectedInputs: [{
+                            type: 'image'
+                        }]
+                    });
                     myStatus.textContent = 'Session created. Identifying object...';
                 }
 
                 const myPrompt = `Identify the single main object in this image and provide a single, short, factual sentence about it. Do not use conversational language.`;
-                const myBlob = new Blob([await myFile.arrayBuffer()], { type: myFile.type });
+                const myBlob = new Blob([await myFile.arrayBuffer()], {
+                    type: myFile.type
+                });
 
-                const myResult = await myLanguageModelSession.prompt(myPrompt, myBlob);
+                // FIX #2: Corrected the prompt structure to be an array of objects with role and content
+                const myResult = await myLanguageModelSession.prompt([{
+                    role: 'user',
+                    content: [{
+                        type: 'text',
+                        value: myPrompt
+                    }, {
+                        type: 'image',
+                        value: myBlob
+                    }]
+                }]);
 
                 myOutput.textContent = myResult;
                 myStopTimer("Object identified!");
