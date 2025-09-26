@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome AI: Live Translator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #4CAF50;
+        }
+
+        .my-container {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        .my-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .my-button:hover {
+            background-color: #0056b3;
+        }
+
+        .my-output-container {
+            margin-top: 20px;
+        }
+
+        .my-output-box {
+            min-height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #eee;
+            white-space: pre-wrap;
+            margin-top: 10px;
+        }
+
+        .my-status {
+            font-style: italic;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Chrome Built-in AI: Live Translator</h1>
+    <p>This application uses the Web Speech API to transcribe your voice live and the Chrome Built-in AI to translate the text in real time. Click "Start Recording" and speak a sentence to see the transcription and translation.</p>
+
+    <div class="my-container">
+        <h2>Live Translation</h2>
+        <div>
+            <label for="mySourceLanguage">Select Source Language:</label>
+            <select id="mySourceLanguage" style="width: 100%; padding: 8px; margin-top: 10px;">
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ja">Japanese</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+            </select>
+        </div>
+        <div>
+            <label for="myTargetLanguage" style="margin-top: 15px; display: block;">Select Target Language:</label>
+            <select id="myTargetLanguage" style="width: 100%; padding: 8px; margin-top: 10px;">
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ja">Japanese</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="en">English</option>
+            </select>
+        </div>
+        <button onclick="myToggleRecording()" id="myRecordButton" class="my-button">Start Recording</button>
+    </div>
+
+    <div class="my-output-container">
+        <h2>Transcription</h2>
+        <p id="myTranscriptionStatus" class="my-status">Ready.</p>
+        <div id="myTranscriptionOutput" class="my-output-box"></div>
+    </div>
+
+    <div class="my-output-container">
+        <h2>Translation</h2>
+        <p id="myTranslationStatus" class="my-status">Ready.</p>
+        <div id="myTranslationOutput" class="my-output-box"></div>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>A Note on Chrome Flags</h2>
+        <p>To use this feature, you must have the "Enable built-in AI" flag enabled in Chrome. Open a new tab, paste the link below, press Enter, enable the flag, and then restart Chrome.</p>
+        <input type="text" id="flagsLink" value="chrome://flags/#enable-built-in-ai" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer;"
+            onclick="myCopyFlagsLink()">
+        <br>
+        <button onclick="myCopyFlagsLink()"
+            style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Link & Open New
+            Tab</button>
+    </div>
+
+    <div>
+        <h2>My GitHub</h2>
+        <p>You can find more of my work on my GitHub page:</p>
+        <p><a href="https://github.com/Jeremy-Ellis" target="_blank">github.com/Jeremy-Ellis</a></p>
+    </div>
+
+    <script>
+        let myLanguageModelSession = null;
+        let mySpeechRecognition = null;
+        let myIsRecording = false;
+        let myTimerInterval = null;
+        const myRecordButton = document.getElementById('myRecordButton');
+        const myTranscriptionStatus = document.getElementById('myTranscriptionStatus');
+        const myTranscriptionOutput = document.getElementById('myTranscriptionOutput');
+        const myTranslationStatus = document.getElementById('myTranslationStatus');
+        const myTranslationOutput = document.getElementById('myTranslationOutput');
+        const mySourceLanguageSelect = document.getElementById('mySourceLanguage');
+        const myTargetLanguageSelect = document.getElementById('myTargetLanguage');
+
+        // Function to create and configure the speech recognition object
+        function myCreateSpeechRecognition() {
+            if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+                const myRecognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                myRecognition.interimResults = true;
+                myRecognition.lang = mySourceLanguageSelect.value;
+                return myRecognition;
+            } else {
+                myTranscriptionStatus.textContent = "Error: Web Speech API is not supported in this browser.";
+                return null;
+            }
+        }
+
+        // Function to start a simple timer
+        function myStartTimer() {
+            let mySeconds = 0;
+            myTranslationStatus.textContent = "Translating... 0s";
+            myTimerInterval = setInterval(() => {
+                mySeconds++;
+                myTranslationStatus.textContent = `Translating... ${mySeconds}s`;
+            }, 1000);
+        }
+
+        // Function to stop the timer
+        function myStopTimer(myMessage) {
+            if (myTimerInterval) {
+                clearInterval(myTimerInterval);
+                myTimerInterval = null;
+            }
+            myTranslationStatus.textContent = myMessage;
+        }
+
+        // Helper function to copy the flags link
+        function myCopyFlagsLink() {
+            const myFlagsInput = document.getElementById('flagsLink');
+            myFlagsInput.select();
+            myFlagsInput.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            window.open('about:blank', '_blank');
+        }
+
+        // Main function to start or stop recording
+        function myToggleRecording() {
+            if (!mySpeechRecognition) {
+                mySpeechRecognition = myCreateSpeechRecognition();
+                if (!mySpeechRecognition) return;
+
+                mySpeechRecognition.onresult = (event) => {
+                    let myInterimTranscript = '';
+                    let myFinalTranscript = '';
+                    for (const myResult of event.results) {
+                        if (myResult.isFinal) {
+                            myFinalTranscript += myResult[0].transcript;
+                        } else {
+                            myInterimTranscript += myResult[0].transcript;
+                        }
+                    }
+                    // Update transcription output with live and final text
+                    myTranscriptionOutput.textContent = myFinalTranscript + myInterimTranscript;
+                    
+                    if (myFinalTranscript.trim().length > 0) {
+                        myProcessTranslation(myFinalTranscript.trim());
+                    }
+                };
+
+                mySpeechRecognition.onend = () => {
+                    if (myIsRecording) {
+                        mySpeechRecognition.start(); // Restart if still recording
+                    } else {
+                        myTranscriptionStatus.textContent = "Recording stopped.";
+                    }
+                };
+
+                mySpeechRecognition.onerror = (event) => {
+                    myStopRecording(event.error);
+                };
+            }
+
+            if (!myIsRecording) {
+                myStartRecording();
+            } else {
+                myStopRecording();
+            }
+        }
+
+        // Function to start the recording process
+        function myStartRecording() {
+            myIsRecording = true;
+            myRecordButton.textContent = "Stop Recording";
+            myTranscriptionStatus.textContent = "Listening...";
+            myTranscriptionOutput.textContent = '';
+            myTranslationOutput.textContent = '';
+            myTranslationStatus.textContent = "Ready.";
+            mySpeechRecognition.start();
+        }
+
+        // Function to stop the recording process
+        function myStopRecording(myError = null) {
+            myIsRecording = false;
+            myRecordButton.textContent = "Start Recording";
+            mySpeechRecognition.stop();
+            if (myError) {
+                myTranscriptionStatus.textContent = `Error: ${myError}`;
+            }
+        }
+
+        // Function to process translation using the Built-in AI
+        async function myProcessTranslation(myTextToTranslate) {
+            myTranslationOutput.textContent = "";
+            myStartTimer();
+
+            try {
+                if (!('LanguageModel' in window)) {
+                    myStopTimer("Error: LanguageModel API not available.");
+                    return;
+                }
+                
+                if (!myLanguageModelSession) {
+                    myLanguageModelSession = await LanguageModel.create();
+                }
+
+                const mySourceLanguage = mySourceLanguageSelect.value;
+                const myTargetLanguage = myTargetLanguageSelect.value;
+                const myTranslationPrompt = `Translate the following ${mySourceLanguage} text into ${myTargetLanguage}:\n\n${myTextToTranslate}`;
+                const myTranslatedText = await myLanguageModelSession.prompt(myTranslationPrompt);
+
+                myTranslationOutput.textContent = myTranslatedText;
+                myStopTimer("Translation complete!");
+
+            } catch (myError) {
+                myStopTimer("An error occurred during translation.");
+                console.error("Error:", myError);
+            }
+        }
+    </script>
+</body>
+
+</html>
