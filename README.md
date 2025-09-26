@@ -44,9 +44,9 @@ Also these are not for mobile phones.
 
 1.[links.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/links.html)
 
-1.[multimodal-sound.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/multimodal-sound.html)
-
 1.[multimodal-audio-stream.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/multimodal-audio-stream.html)
+
+1.[multimodal-sound.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/multimodal-sound.html)
 
 1.[multimodal-vision.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/multimodal-vision.html)
 
