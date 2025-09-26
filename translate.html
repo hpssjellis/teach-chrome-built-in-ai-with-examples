@@ -5,68 +5,120 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chrome AI: Simple Translator Example</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #4CAF50;
+        }
+
+        .my-container {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        .my-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 16px;
+            color: white;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .my-secondary-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 16px;
+            color: white;
+            background-color: #6c757d;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        /* New CSS for resizable textareas */
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            resize: vertical; /* Allows the user to manually resize the textarea vertically */
+        }
+
+        .my-status {
+            font-style: italic;
+            color: #555;
+        }
+    </style>
 </head>
 
-<body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px;">
-    <h1 style="color: #4CAF50;">Chrome Built-in AI: Simple Translator</h1>
-    <p>This example demonstrates how to use the built-in AI to translate text from one language to another. It uses the `prompt()` method with clear instructions to guide the AI's response.</p>
+<body>
+    <h1>Chrome Built-in AI: Simple Translator</h1>
+    <p>This example demonstrates how to use the built-in AI to translate text from one language to another. It uses the `LanguageModel.translate()` method, which is the most direct and efficient way to perform this task.</p>
 
-    <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+    <div class="my-container">
         <h2 style="margin-top: 0;">Text & Language Input</h2>
 
-        <!-- Language Selection - From -->
         <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
             <p style="font-weight: bold; margin: 0;">Translate from:</p>
             <select id="mySourceLanguageSelect"
                 style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex: 1;">
-                <option value="English">English</option>
-                <option value="Spanish">Spanish</option>
-                <option value="French">French</option>
-                <option value="German">German</option>
-                <option value="Japanese">Japanese</option>
-                <option value="Chinese">Chinese</option>
-                <option value="Russian">Russian</option>
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ja">Japanese</option>
+                <option value="zh">Chinese</option>
+                <option value="ru">Russian</option>
             </select>
         </div>
 
-        <!-- Language Selection - To -->
         <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
             <p style="font-weight: bold; margin: 0;">Translate into:</p>
             <select id="myLanguageSelect"
                 style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex: 1;">
-                <option value="Spanish">Spanish</option>
-                <option value="French">French</option>
-                <option value="German">German</option>
-                <option value="Japanese">Japanese</option>
-                <option value="Chinese">Chinese</option>
-                <option value="Russian">Russian</option>
-                <option value="English">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="ja">Japanese</option>
+                <option value="zh">Chinese</option>
+                <option value="ru">Russian</option>
+                <option value="en">English</option>
             </select>
         </div>
 
-        <!-- Text Input -->
         <p style="font-weight: bold;">Enter text to translate:</p>
-        <textarea id="myTextToTranslate" rows="10" placeholder="Type or paste text here..."
-            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        <textarea id="myTextToTranslate" rows="10" placeholder="Type or paste text here...">
 Hello how are you today?
-            </textarea>
+        </textarea>
 
-        <!-- Translation Button -->
-        <button id="myTranslateButton" onclick="myTranslateText()"
-            style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #4CAF50; border: none; border-radius: 5px; cursor: pointer;">Translate</button>
+        <button id="myTranslateButton" onclick="myTranslateText()" class="my-button">Translate</button>
 
         <hr style="margin: 20px 0;">
 
-        <!-- File Upload Section -->
         <p style="font-weight: bold;">Load from a text file (.txt):</p>
         <input type="file" id="myTextFileInput" accept=".txt">
-        <button id="myLoadFileButton" onclick="myLoadTextFile()"
-            style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #6c757d; border: none; border-radius: 5px; cursor: pointer;">Load .txt File</button>
+        <button id="myLoadFileButton" onclick="myLoadTextFile()" class="my-secondary-button">Load .txt File</button>
     </div>
 
     <div style="margin-top: 20px;">
         <h2 style="margin-top: 0;">Status and Output</h2>
-        <p id="myStatus" style="font-style: italic; color: #555;">Ready. Enter text and select a language.</p>
+        <p id="myStatus" class="my-status">Ready. Enter text and select a language.</p>
         <textarea id="myOutput" rows="10" readonly
             style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #eee; box-sizing: border-box; margin-top: 10px;"></textarea>
     </div>
@@ -75,7 +127,7 @@ Hello how are you today?
 
     <div>
         <h2>A Note on Chrome Flags</h2>
-        <p>To use this feature, you must have the "Enable built-in AI" flag enabled in Chrome. Open a new tab, paste the link below, press Enter, enable the flag, and then restart Chrome.</p>
+        <p>While the `LanguageModel.translate()` API is stable in recent Chrome versions (138+), some platforms may still require the `chrome://flags/#enable-built-in-ai` flag to be enabled, especially on older versions or for other AI features.</p>
         <input type="text" id="flagsLink" value="chrome://flags/#enable-built-in-ai" readonly
             style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer;"
             onclick="myCopyFlagsLink()">
@@ -95,7 +147,6 @@ Hello how are you today?
 
     <script>
         // Use my descriptive names and camelCase
-        let myLanguageModelSession = null;
         let myTimerInterval = null;
         const myStatus = document.getElementById('myStatus');
         const myTextToTranslate = document.getElementById('myTextToTranslate');
@@ -106,10 +157,10 @@ Hello how are you today?
         // Function to start a simple timer to show activity
         function myStartTimer() {
             let mySeconds = 0;
-            myStatus.textContent = "Working... 0s";
+            myStatus.textContent = "Translating... 0s";
             myTimerInterval = setInterval(() => {
                 mySeconds++;
-                myStatus.textContent = `Working... ${mySeconds}s`;
+                myStatus.textContent = `Translating... ${mySeconds}s`;
             }, 1000);
         }
 
@@ -122,11 +173,11 @@ Hello how are you today?
             myStatus.textContent = myMessage;
         }
 
-        // Main function to execute the translation prompt
+        // Main function to execute the translation using the dedicated `translate()` method
         async function myTranslateText() {
             const myText = myTextToTranslate.value.trim();
-            const mySelectedSourceLanguage = mySourceLanguageSelect.value;
-            const mySelectedLanguage = myLanguageSelect.value;
+            const mySourceLanguage = mySourceLanguageSelect.value;
+            const myTargetLanguage = myLanguageSelect.value;
             myOutput.value = "";
 
             if (!myText) {
@@ -141,22 +192,14 @@ Hello how are you today?
                     myStopTimer("Error: LanguageModel API not available. Make sure you are using a compatible Chrome version with the 'Enable built-in AI' flag turned on.");
                     return;
                 }
-
-                if (!myLanguageModelSession) {
-                    myStatus.textContent = 'Creating AI session...';
-                    myLanguageModelSession = await LanguageModel.create();
-                    myStatus.textContent = 'Session created. Translating...';
-                }
-
-                // Construct the clear translation instruction using both source and target languages
-                const myInstruction = `Translate the following text from ${mySelectedSourceLanguage} into ${mySelectedLanguage}:`;
-                const myGeneratedText = await myLanguageModelSession.prompt([{
-                    text: myInstruction
-                }, {
-                    text: myText
-                }]);
-
-                myOutput.value = myGeneratedText;
+                
+                // Use the static translate() method for a clean and efficient translation
+                const myTranslatedText = await LanguageModel.translate(myText, {
+                    sourceLanguage: mySourceLanguage,
+                    targetLanguage: myTargetLanguage
+                });
+                
+                myOutput.value = myTranslatedText;
                 myStopTimer("Translation complete!");
 
             } catch (myError) {
