@@ -14,7 +14,39 @@
     <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
         <h2 style="margin-top: 0;">Explain My Code</h2>
         <textarea id="myCodeInput" rows="10" placeholder="Paste your JavaScript code here..."
-            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimalist Starter Page</title>
+    <!-- Load Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Optional: Set a clean default font and background */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Content Card -->
+    <div class="max-w-sm w-full bg-white p-8 shadow-xl rounded-xl text-center">
+        
+        <!-- Header -->
+        <h1 class="text-4xl font-extrabold text-gray-800">
+            Hello, World!
+        </h1>
+        
+    </div>
+
+</body>
+</html>
+            
+            </textarea>
         <button id="myCommentButton" onclick="myExplainCode()"
             style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #007bff; border: none; border-radius: 5px; cursor: pointer;">Explain Code</button>
     </div>
