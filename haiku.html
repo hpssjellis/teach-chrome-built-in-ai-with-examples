@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome AI: Haiku Generator</title>
+</head>
+
+<body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px;">
+    <h1 style="color: #4CAF50;">Chrome Built-in AI: Haiku Generator</h1>
+    <p>This example demonstrates how to use the built-in AI to generate a short poem or haiku based on a single word. It's a fun way to explore the creative capabilities of the AI.</p>
+
+    <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9; text-align: center;">
+        <h2 style="margin-top: 0;">Generate a Poem</h2>
+        <input type="text" id="myWordInput" placeholder="Enter a word (e.g., 'forest')..."
+            style="width: 80%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+        <br>
+        <button id="myGenerateButton" onclick="myGeneratePoem()"
+            style="padding: 12px 24px; font-size: 18px; color: white; background-color: #4CAF50; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px;">Generate Poem</button>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h2 style="margin-top: 0;">Status and Output</h2>
+        <p id="myStatus" style="font-style: italic; color: #555;">Ready. Enter a word and press "Generate Poem."</p>
+        <div id="myOutput"
+            style="min-height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #eee; white-space: pre-wrap; margin-top: 10px; text-align: left;">
+        </div>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>A Note on Chrome Flags</h2>
+        <p>To use this feature, you must have the "Enable built-in AI" flag enabled in Chrome. Open a new tab, paste the link below, press Enter, enable the flag, and then restart Chrome.</p>
+        <input type="text" id="flagsLink" value="chrome://flags/#enable-built-in-ai" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer;"
+            onclick="myCopyFlagsLink()">
+        <br>
+        <button onclick="myCopyFlagsLink()"
+            style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Link & Open New
+            Tab</button>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>My GitHub</h2>
+        <p>You can find more of my work on my GitHub page:</p>
+        <p><a href="https://github.com/Jeremy-Ellis" target="_blank">github.com/Jeremy-Ellis</a></p>
+    </div>
+
+    <script>
+        // Use my descriptive names and camelCase
+        let myLanguageModelSession = null;
+        let myTimerInterval = null;
+        const myStatus = document.getElementById('myStatus');
+        const myOutput = document.getElementById('myOutput');
+
+        // Function to start a simple timer to show activity
+        function myStartTimer() {
+            let mySeconds = 0;
+            myStatus.textContent = "Working... 0s";
+            myTimerInterval = setInterval(() => {
+                mySeconds++;
+                myStatus.textContent = `Working... ${mySeconds}s`;
+            }, 1000);
+        }
+
+        // Function to stop the timer and set the final status
+        function myStopTimer(myMessage) {
+            if (myTimerInterval) {
+                clearInterval(myTimerInterval);
+                myTimerInterval = null;
+            }
+            myStatus.textContent = myMessage;
+        }
+
+        // Main function to generate a poem
+        async function myGeneratePoem() {
+            const myWord = document.getElementById('myWordInput').value.trim();
+            if (!myWord) {
+                myStatus.textContent = "Please enter a word to generate a poem.";
+                return;
+            }
+
+            myOutput.textContent = "";
+            myStartTimer();
+
+            try {
+                if (!('LanguageModel' in window)) {
+                    myStopTimer("Error: LanguageModel API not available. Make sure you are using a compatible Chrome version with the 'Enable built-in AI' flag turned on.");
+                    return;
+                }
+
+                if (!myLanguageModelSession) {
+                    myStatus.textContent = 'Creating AI session...';
+                    myLanguageModelSession = await LanguageModel.create();
+                    myStatus.textContent = 'Session created. Generating poem...';
+                }
+
+                const myPrompt = `Write a short, simple poem or haiku about the word "${myWord}". Do not include the word "${myWord}" in the poem itself.`;
+                const myGeneratedText = await myLanguageModelSession.prompt(myPrompt);
+
+                myOutput.textContent = myGeneratedText;
+                myStopTimer("Poem generated!");
+
+            } catch (myError) {
+                myStopTimer("An error occurred. Check the console for details.");
+                console.error("Error:", myError);
+            }
+        }
+
+        // Helper function to copy the flags link and open a new tab
+        function myCopyFlagsLink() {
+            const myFlagsInput = document.getElementById('flagsLink');
+            myFlagsInput.select();
+            myFlagsInput.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            window.open('about:blank', '_blank');
+        }
+    </script>
+</body>
+
+</html>
