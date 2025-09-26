@@ -1,4 +1,504 @@
-   /**
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome-Built-In-AI</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Gemini-Nano Chrome Built In AI Prompt API Demo</h1>
+        <p>A starting point for a client-side, LLM in the browser. This is for online and offline Javascript use. (Run it once and download this single page website)</p>
+        <h3> NOT YET FOR MOBILE, DO NOT TRY YET ON MOBILE!</h3>
+        <p>By <a href="https://github.com/hpssjellis">Jeremy Ellis</a> uses at your own risk</p>
+        <p>Github for these gitpages at <a href="https://github.com/hpssjellis/my-examples-of-web-llm">https://github.com/hpssjellis/my-examples-of-web-llm</a></p>
+        <p>Main Demo index at <a href="https://hpssjellis.github.io/my-examples-of-web-llm/public/index.html">https://hpssjellis.github.io/my-examples-of-web-llm/public/index.html</a></p>
+        <br>
+        <details open>
+            <summary>Help to setup Chrome flags if needed</summary>
+            <p>This page demonstrates the core features of the Gemini Nano Prompt API (<code>LanguageModel</code> API) available in Chrome 138+.</p>
+            <p>Ensure you have enabled the necessary flags. Copy the link below and paste it into your Chrome address bar:</p>
+            <input type="text" id="flagsLink" class="copy-input" size="60" value="chrome://flags#optimization-guide-on-device-model" readonly>
+            <button class="copy-button" onclick="myCopyFlagsLink()">Copy - tab</button><br>
+            Then set <code>#optimization-guide-on-device-model</code> (to Enabled BypassPrefRequirement)<br>
+            Then search for <input type="text" size="15" value="gemini-nano"> and set all of them to enabled:<br>
+            <ol>
+                <li><code>#prompt-api-for-gemini-nano</code> (set to Enabled)</li>
+                <li><code>#prompt-api-for-gemini-nano-multimodal-input</code>(set to Enabled) </li>
+                <li><code>#summarization-api-for-gemini-nano</code>(set to Enabled) </li>
+                <li><code>#writer-api-for-gemini-nano</code>(set to Enabled) </li>
+                <li><code>#rewriter-api-for-gemini-nano</code>(set to Enabled) </li>
+                <li><code>#proofreader-api-for-gemini-nano</code>(set to Enabled) </li>
+            </ol>
+            <p>The Gemini Nano model will download the first time you use it. That will be about 4.0 GB of download and will need about 20 GB saving space for the final folders. </p>
+            <p>Note: User Ctrl-Shift-i to show comments.</p>
+        </details>
+        <!-- Buttons for LanguageModel -->
+        <button onclick="myCheckAvailability('languageModel')">Check LLM API Availability</button>
+        <button onclick="myGetParams()">Get Model Parameters</button>
+        <button id="myCreateLanguageModelSessionBtn" onclick="myCreateLanguageModelSession()">Create LLM Session</button><br>
+        <!-- Buttons for Proofreader -->
+        <button onclick="myCheckAvailability('proofreader')">Check Proofreader Availability</button>
+        <button id="myCreateProofreaderSessionBtn" onclick="myCreateProofreaderSession()">Create Proofreader Session</button>
+        <hr>
+        <!-- Buttons for prompt selection -->
+        <div class="button-group">
+            <button id="myPrepSimplePromptBtn" onclick="myPreparePrompt('simple')">Prepare Simple Prompt</button>
+            <button id="myPrepStreamPromptBtn" onclick="myPreparePrompt('streaming')">Prepare Streaming Prompt</button>
+            <button id="myPrepMultimodalPromptBtn" onclick="myPreparePrompt('multimodal')">Prepare Multimodal Prompt</button>
+            <button id="myPrepSummarizeBtn" onclick="myPreparePrompt('summarize')">Prepare Summarize Text</button>
+            <button id="myPrepWriteBtn" onclick="myPreparePrompt('write')">Prepare Write Content</button>
+            <button id="myPrepRewriteBtn" onclick="myPreparePrompt('rewrite')">Prepare Rewrite Text</button>
+            <button id="myPrepProofreadBtn" onclick="myPreparePrompt('proofread')">Prepare Proofread Text</button>
+        </div>
+
+
+
+        
+        <h3>Edit Prompt:</h3>
+        <div id="myMultiDiv" style="display:none">
+            <p>Select an image or audio file, or use your webcam/mic to capture media, to describe it using the Language Model API.</p>
+            <h3>Image Input</h3>
+            <input type="file" id="myImageInput" accept="image/*" />
+            <button onclick="myStartWebcam()">Start Webcam</button>
+            <button id="myCaptureImageButton" onclick="myCaptureImage()" style="display: none;">Capture Image</button>
+            <h3>Audio Input</h3>
+            <input type="file" id="myAudioInput" accept="audio/*" />
+            <button id="myStartRecordingButton" onclick="myStartAudioRecording()">Start Mic Recording</button>
+            <button id="myStopRecordingButton" onclick="myStopAudioRecording()" style="display: none;">Stop Mic Recording</button>
+            <audio id="myAudioPreview" controls style="display: none;"></audio>
+            <hr>
+            Prompt (optional) <textarea id="myAudioImagePrompt" rows=2 cols=80></textarea><br>
+            Note: Audio needs a fairly good windows computer!<br>
+            <button id="myDescribeButton" style="background-color:lime;" onclick="myStartDescription()">Transcribe and/or Describe Media</button>
+            <button id="myStopButton" onclick="myStopDescription()" style="display: none;">Stop Description</button>
+            <div id="myStatus">Status here</div>
+            <h2>Description:</h2>
+            <p id="myOutputText"></p>
+            <img id="myImagePreview" alt="Image Preview" style="display: none; max-width: 100%; height: auto;" />
+            <video id="myWebcamPreview" style="display: none; max-width: 100%; height: auto;"></video>
+            <canvas id="myCanvas" style="display: none;"></canvas>
+            <br>
+            <hr>
+            <br>
+            <h3>Chrome AI Translator</h3>
+            <p>
+                Source:
+                <select id="mySourceLang">
+                    <option value="it">Italian</option>
+                    <option value="en" selected>English</option>
+                    <option value="fr">French</option>
+                    <option value="es">Spanish</option>
+                    <option value="de">German</option>
+                    <option value="pt">Portuguese</option>
+                </select>
+                → Target:
+                <select id="myTargetLang">
+                    <option value="en">English</option>
+                    <option value="it">Italian</option>
+                    <option value="fr" selected>French</option>
+                    <option value="es">Spanish</option>
+                    <option value="de">German</option>
+                    <option value="pt">Portuguese</option>
+                </select>
+            </p>
+            <textarea id="myInput" rows="6" cols="70" placeholder="Type text here...">Hello How are you?</textarea><br>
+            <input type="button" value="Translate" onclick="myHandleTranslateClick()">
+            <input type="button" value="Release Translator" onclick="myReleaseTranslator()">
+            <p><b>Status:</b></p>
+            <div id="myStatus" style="white-space:pre-wrap;"></div>
+            <textarea id="myOutput" rows="6" cols="70" placeholder="Translation here...">Hello How are you?</textarea><br>
+            <div>
+                <label for="myVoiceSelect">Choose a voice:</label>
+                <select id="myVoiceSelect"></select>
+            </div>
+            <br>
+            <button id="mySpeakButton">Speak Text</button>
+            <p id="myStatusMessage"></p>
+        </div>
+        <div id="myMainResponseArea">
+            <textarea id="myPromptInput" rows="4" cols="120" placeholder="Select a prompt type above to pre-fill, or type your own."></textarea>
+            <div>
+                <input type="checkbox" id="myJsonInputCheckbox">
+                <label for="myJsonInputCheckbox">JSON Input</label>,
+                <input type="checkbox" id="myJsonOutputCheckbox">
+                <label for="myJsonOutputCheckbox">JSON Output</label>,
+                <button id="myExecutePromptBtn" onclick="myExecutePrompt()" disabled>Execute Prompt</button>
+            </div>
+            <h3>Output:</h3>
+            <div id="myTimerDisplay"></div>
+            <textarea id="myOutputDiv" rows="4" cols="120" readonly>No output yet. Click a button to begin.</textarea>
+            <!-- New section for HTML preview and viewer -->
+            <h3>HTML Code Preview and Viewer</h3>
+            <div class="button-group">
+                <button id="myViewHtmlBtn" onclick="myViewHtmlOutput()">View HTML to Edit</button>
+                <button id="myRenderHtmlBtn" onclick="myRenderHtmlInNewTab()">Render HTML in New Tab</button>
+                <button id="myCopyHtmlBtn" onclick="myCopyHtmlToClipboard()">Copy HTML</button>
+            </div>
+            <textarea id="myHtmlCodePreview" rows="4" cols="120" placeholder="The HTML code will appear here after clicking 'View HTML to Edit'.
+or write your own HTML and view it"></textarea>
+            <!-- End of new section -->
+        </div>
+    </div>
+    <script>
+        // Global variables for the LanguageModel and Proofreader sessions
+        let myLanguageModelSession = null;
+        let myProofreaderSession = null;
+        let myCurrentPromptMode = { type: null, isStreaming: false };
+        // My new AbortController variable to manage stopping the stream
+        let myAbortController = null;
+        // Timer variables
+        let myStartTime = 0;
+        let myTimerInterval = null;
+        let myLastGeneratedText = '';
+        // Get references to output and buttons
+        const myOutputDiv = document.getElementById('myOutputDiv');
+        const myTimerDisplay = document.getElementById('myTimerDisplay');
+        const myCreateLanguageModelSessionBtn = document.getElementById('myCreateLanguageModelSessionBtn');
+        const myCreateProofreaderSessionBtn = document.getElementById('myCreateProofreaderSessionBtn');
+        const myPromptInput = document.getElementById('myPromptInput');
+        const myExecutePromptBtn = document.getElementById('myExecutePromptBtn');
+        // References to the "prepare" buttons
+        const myPrepSimplePromptBtn = document.getElementById('myPrepSimplePromptBtn');
+        const myPrepStreamPromptBtn = document.getElementById('myPrepStreamPromptBtn');
+        const myPrepMultimodalPromptBtn = document.getElementById('myPrepMultimodalPromptBtn');
+        const myPrepSummarizeBtn = document.getElementById('myPrepSummarizeBtn');
+        const myPrepWriteBtn = document.getElementById('myPrepWriteBtn');
+        const myPrepRewriteBtn = document.getElementById('myPrepRewriteBtn');
+        const myPrepProofreadBtn = document.getElementById('myPrepProofreadBtn');
+        // References to the new HTML preview elements
+        const myHtmlCodePreview = document.getElementById('myHtmlCodePreview');
+        const myViewHtmlBtn = document.getElementById('myViewHtmlBtn');
+        const myRenderHtmlBtn = document.getElementById('myRenderHtmlBtn');
+        // References to the new checkboxes
+        const myJsonInputCheckbox = document.getElementById('myJsonInputCheckbox');
+        const myJsonOutputCheckbox = document.getElementById('myJsonOutputCheckbox');
+        // Reference to the new copy button
+        const myCopyHtmlBtn = document.getElementById('myCopyHtmlBtn');
+        /**
+         * Displays a message in the output area.
+         */
+        function myDisplayOutput(myMessage, myType = 'info', myAppend = true) {
+            const myNow = new Date().toLocaleTimeString();
+            let myFormattedMessage = `[${myNow}] ${myMessage}`;
+            let myContent = '';
+            if (myType === 'loading') {
+                myContent = `<span class="loading">${myFormattedMessage}</span>`;
+            } else if (myType === 'error') {
+                myContent = `<span class="error">${myFormattedMessage}</span>`;
+            } else {
+                myContent = myFormattedMessage;
+            }
+            if (myAppend) {
+                myOutputDiv.value += `\n${myFormattedMessage}`;
+            } else {
+                myOutputDiv.value = myFormattedMessage;
+            }
+            myOutputDiv.scrollTop = myOutputDiv.scrollHeight;
+            console.log(myFormattedMessage);
+        }
+        /**
+         * Clears the main output div.
+         */
+        function myClearOutput() {
+            myOutputDiv.value = '';
+        }
+        /**
+         * Updates the timer display.
+         */
+        function myUpdateTimerDisplay() {
+            const myElapsed = (Date.now() - myStartTime) / 1000;
+            myTimerDisplay.textContent = `Thinking... ${myElapsed.toFixed(2)}s`;
+        }
+        /**
+         * Checks the availability of a specific API.
+         * @param {string} myApiName The name of the API to check ('languageModel' or 'proofreader').
+         */
+        async function myCheckAvailability(myApiName) {
+            myClearOutput();
+            myDisplayOutput(`Checking ${myApiName} API availability...`, 'info', false);
+            try {
+                if (typeof LanguageModel === 'undefined') {
+                    myDisplayOutput('LanguageModel API is not available.', 'error', true);
+                    return;
+                }
+                if (myApiName === 'languageModel') {
+                    const myAvailability = await LanguageModel.availability();
+                    myDisplayOutput(`LLM API Availability: ${myAvailability}`, 'info', true);
+                    if (myAvailability === 'downloadable' || myAvailability === 'available') {
+                        myCreateLanguageModelSessionBtn.disabled = false;
+                    }
+                } else if (myApiName === 'proofreader') {
+                    if (typeof Proofreader === 'undefined') {
+                        myDisplayOutput('Proofreader API is not available.', 'error', true);
+                        return;
+                    }
+                    const myOptions = { includeCorrectionTypes: false, expectedInputLanguages: ["en"] };
+                    const myAvailability = await Proofreader.availability(myOptions);
+                    myDisplayOutput(`Proofreader API Availability: ${myAvailability}`, 'info', true);
+                    if (myAvailability === 'downloadable' || myAvailability === 'available') {
+                        myCreateProofreaderSessionBtn.disabled = false;
+                    }
+                }
+            } catch (myError) {
+                myDisplayOutput(`Error checking availability for ${myApiName}: ${myError.message}`, 'error', true);
+                console.error(`Error checking availability for ${myApiName}:`, myError);
+            }
+        }
+        /**
+         * Retrieves the default and maximum parameters for the LanguageModel.
+         */
+        async function myGetParams() {
+            myClearOutput();
+            myDisplayOutput('Fetching LanguageModel parameters...', 'info', false);
+            try {
+                if (typeof LanguageModel === 'undefined') {
+                    myDisplayOutput('LanguageModel API is not available.', 'error', true);
+                    return;
+                }
+                const myParams = await LanguageModel.params();
+                myDisplayOutput('LanguageModel Parameters:\n' + JSON.stringify(myParams, null, 2), 'info', true);
+            } catch (myError) {
+                myDisplayOutput(`Error fetching parameters: ${myError.message}`, 'error', true);
+                console.error('Error fetching parameters:', myError);
+            }
+        }
+        /**
+         * Creates a new LanguageModel session.
+         */
+        async function myCreateLanguageModelSession() {
+            myClearOutput();
+            myDisplayOutput('Creating LanguageModel session...', 'loading', false);
+            myCreateLanguageModelSessionBtn.disabled = true;
+            try {
+                if (typeof LanguageModel === 'undefined') {
+                    myDisplayOutput('LanguageModel API is not available.', 'error', true);
+                    myCreateLanguageModelSessionBtn.disabled = false;
+                    return;
+                }
+                myLanguageModelSession = await LanguageModel.create({
+                    monitor(m) {
+                        m.addEventListener("downloadprogress", (e) => {
+                            myDisplayOutput(`Downloading LLM: ${((e.loaded / e.total) * 100).toFixed(2)}%`, 'loading', false);
+                        });
+                    }
+                });
+                myDisplayOutput('LanguageModel session created successfully!', 'info', true);
+                myEnablePromptButtons();
+                myExecutePromptBtn.disabled = false;
+            } catch (myError) {
+                myDisplayOutput(`Error creating LLM session: ${myError.message}`, 'error', true);
+                console.error('Error creating LLM session:', myError);
+                myCreateLanguageModelSessionBtn.disabled = false;
+            }
+        }
+        /**
+         * Creates a new Proofreader session.
+         */
+        async function myCreateProofreaderSession() {
+            myClearOutput();
+            myDisplayOutput('Creating Proofreader session...', 'loading', false);
+            myCreateProofreaderSessionBtn.disabled = true;
+            try {
+                if (typeof Proofreader === 'undefined') {
+                    myDisplayOutput('Proofreader API is not available.', 'error', true);
+                    myCreateProofreaderSessionBtn.disabled = false;
+                    return;
+                }
+                const myOptions = { includeCorrectionTypes: false, expectedInputLanguages: ["en"] };
+                myProofreaderSession = await Proofreader.create({
+                    ...myOptions,
+                    monitor(m) {
+                        m.addEventListener("downloadprogress", e => {
+                            myDisplayOutput(`Downloading Proofreader model: ${(e.loaded / e.total * 100).toFixed(2)}%`, 'loading', false);
+                        });
+                    }
+                });
+                myDisplayOutput('Proofreader session created successfully!', 'info', true);
+                myPrepProofreadBtn.disabled = false; // Only enable the proofread button
+                myExecutePromptBtn.disabled = false;
+            } catch (myError) {
+                myDisplayOutput(`Error creating Proofreader session: ${myError.message}`, 'error', true);
+                console.error('Error creating Proofreader session:', myError);
+                myCreateProofreaderSessionBtn.disabled = false;
+            }
+        }
+        /**
+         * Prepares the textarea with a default prompt based on the type.
+         */
+        function myPreparePrompt(myType) {
+            let myDefaultText = '';
+            let myIsStreaming = false;
+            let myUsesProofreader = false;
+            myExecutePromptBtn.style.backgroundColor = 'lime';
+            if (myJsonOutputCheckbox.checked && !myJsonInputCheckbox.checked) {
+                myDefaultText = 'Use JSON for the output format. '
+            }
+            if (myJsonInputCheckbox.checked) {
+                myDefaultText = `{
+    "text": "` + myDefaultText;
+            }
+            document.getElementById('myMultiDiv').style.display = 'none' // hide webcam sound translation stuff
+            document.getElementById('myMainResponseArea').style.display = 'block'
+            switch (myType) {
+                case 'simple':
+                    myDefaultText += "Write a short, positive affirmation for the day.";
+                    break;
+                case 'streaming':
+                    myDefaultText += "Make a single file html page about an interesting topic with some simple button activated Javascript.";
+                    myIsStreaming = true;
+                    break;
+                case 'multimodal':
+                    document.getElementById('myMultiDiv').style.display = 'block'
+                    document.getElementById('myMainResponseArea').style.display = 'none'
+                    myDefaultText += "Describe a sunny day at the beach, including the sounds and smells.";
+                    break;
+                case 'summarize':
+                    myDefaultText += "Summarize the following text: The quick brown fox jumps over the lazy dog. This sentence is often used to demonstrate all letters of the alphabet. It's a pangram. A pangram is a sentence, phrase, or word that contains every letter of the alphabet at least once. Pangrams are used to display typefaces, test equipment, and develop skills in handwriting, calligraphy, and typing.";
+                    break;
+                case 'write':
+                    myDefaultText += "Write a short paragraph about the benefits of reading books.";
+                    break;
+                case 'rewrite':
+                    myDefaultText += "Rewrite the following sentence to sound more exciting: I went to the store and bought some apples.";
+                    break;
+                case 'proofread':
+                    myDefaultText += "I seen him yesterday at the store, and he bought two loafs of bread.";
+                    myUsesProofreader = true;
+                    break;
+                default:
+                    myDefaultText = "";
+                    break;
+            }
+            if (myJsonInputCheckbox.checked) {
+                if (myJsonOutputCheckbox.checked) {
+                    myDefaultText += `",
+    "format":"JSON`
+                } else {
+                    myDefaultText += `",
+    "format":"TEXT`
+                }
+                myDefaultText += `"
+}`
+            }
+            myPromptInput.value = myDefaultText;
+            myCurrentPromptMode = { type: myType, isStreaming: myIsStreaming, usesProofreader: myUsesProofreader };
+            myDisplayOutput(`Prompt prepared for "${myType}" mode. Edit text and click "Execute Prompt".`, 'info', true);
+            myExecutePromptBtn.disabled = false;
+        }
+        /**
+         * Executes the prompt based on the current text in the textarea and the selected mode.
+         */
+        async function myExecutePrompt() {
+            // New logic to handle UI cleanup immediately upon stop request
+            if (myAbortController) {
+                myDisplayOutput("Prompt generation was stopped by the user.", "info", true);
+                myAbortController.abort();
+                // My new code to reset the UI immediately
+                clearInterval(myTimerInterval);
+                myEnableAllButtons();
+                myExecutePromptBtn.textContent = 'Execute Prompt';
+                myAbortController = null;
+                return;
+            }
+            if (myCurrentPromptMode.usesProofreader && !myProofreaderSession) {
+                myDisplayOutput('Please create a Proofreader session first!', 'error', true);
+                return;
+            }
+            if (!myCurrentPromptMode.usesProofreader && !myLanguageModelSession) {
+                myDisplayOutput('Please create a Language Model session first!', 'error', true);
+                return;
+            }
+            if (!myCurrentPromptMode.type) {
+                myDisplayOutput('Please prepare a prompt first.', 'error', true);
+                return;
+            }
+            const myPromptText = myPromptInput.value;
+            if (!myPromptText.trim()) {
+                myDisplayOutput('Prompt text cannot be empty!', 'error', true);
+                return;
+            }
+            myStartTime = Date.now();
+            myLastGeneratedText = '';
+            myTimerDisplay.textContent = `Thinking... 0.00s`;
+            myTimerInterval = setInterval(myUpdateTimerDisplay, 100);
+            myOutputDiv.value = '';
+            myHtmlCodePreview.value = ''; // Clear the HTML preview box
+            myDisableAllButtons();
+            myExecutePromptBtn.textContent = 'Stop';
+            myExecutePromptBtn.disabled = false;
+            // My new code to create the AbortController and pass its signal
+            myAbortController = new AbortController();
+            try {
+                if (myCurrentPromptMode.usesProofreader) {
+                    const myCorrections = await myProofreaderSession.proofread(myPromptText, {
+                        signal: myAbortController.signal
+                    });
+                    // Only display the corrected text directly
+                    if (myCorrections && typeof myCorrections.correctedInput === 'string') {
+                        myLastGeneratedText = myCorrections.correctedInput;
+                        myOutputDiv.value = myLastGeneratedText;
+                    } else {
+                        myOutputDiv.value = `No corrections were returned.`;
+                        console.log('Proofreader API response:', myCorrections);
+                    }
+                } else if (myCurrentPromptMode.isStreaming) {
+                    const myStream = await myLanguageModelSession.promptStreaming(myPromptText, {
+                        signal: myAbortController.signal
+                    });
+                    for await (const myChunk of myStream) {
+                        myLastGeneratedText += myChunk;
+                        myOutputDiv.value = myLastGeneratedText;
+                        myOutputDiv.scrollTop = myOutputDiv.scrollHeight;
+                    }
+                } else {
+                    const myResult = await myLanguageModelSession.prompt(myPromptText, {
+                        signal: myAbortController.signal
+                    });
+                    myLastGeneratedText = myResult;
+                    myOutputDiv.value = myResult;
+                }
+            } catch (myError) {
+                // This catch block will now only handle actual errors, not user aborts
+                if (myError.name === 'AbortError') {
+                    // This is a redundant check, but useful for debugging
+                    myDisplayOutput("Prompt generation was successfully aborted.", "info", true);
+                } else {
+                    myDisplayOutput(`Error executing prompt: ${myError.message}`, 'error', true);
+                    console.error('Error executing prompt:', myError);
+                    myLastGeneratedText = '';
+                }
+            } finally {
+                // The timer cleanup logic for successful completion remains here
+                clearInterval(myTimerInterval);
+                const myEndTime = Date.now();
+                const myDurationSeconds = (myEndTime - myStartTime) / 1000;
+                const myCharCount = myLastGeneratedText.length;
+                const myWordCount = myLastGeneratedText.split(/\s+/).filter(myWord => myWord.length > 0).length;
+                const myCharsPerSecond = myDurationSeconds > 0 ? (myCharCount / myDurationSeconds).toFixed(2) : '0.00';
+                const myWordsPerSecond = myDurationSeconds > 0 ? (myWordCount / myDurationSeconds).toFixed(2) : '0.00';
+                myTimerDisplay.innerHTML =
+                    `Completed in ${myDurationSeconds.toFixed(2)}s<br>` +
+                    `Chars: ${myCharCount} (${myCharsPerSecond}/s)<br>` +
+                    `Words: ${myWordsPerSecond}/s)`;
+                myEnableAllButtons();
+                myExecutePromptBtn.textContent = 'Execute Prompt'; // Restore button text
+                myAbortController = null; // My new code to clear the controller
+            }
+        }
+        // --- New HTML Preview Functions ---
+        // REMOVES INFORMATION BEFORE AND AFTER HTML TAGS
+        function myExtractHTMLWithRegex(myStr) {
+            // The 's' flag makes '.' match newlines
+            const myRegex = /<!DOCTYPE html>[\s\S]*?<\/html>/s;
+            const myMatch = myStr.match(myRegex);
+            if (myMatch && myMatch.length > 0) {
+                return myMatch[0];
+            } else {
+                return "Error: HTML structure not found.";
+            }
+        }
+        /**
          * Copies the content of the main output textarea to the HTML preview textarea.
          */
         function myViewHtmlOutput() {
