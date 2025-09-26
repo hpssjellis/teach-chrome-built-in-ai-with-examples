@@ -49,7 +49,6 @@
 
     <script>
         // Use my descriptive names and camelCase
-        let myLanguageModelSession = null;
         let myTimerInterval = null;
 
         // Function to start a simple timer to show activity
@@ -90,20 +89,14 @@
                 myStartTimer();
                 myOutput.value = "";
 
-                if (!myLanguageModelSession) {
-                    myStatus.textContent = 'Creating AI session...';
-                    myLanguageModelSession = await LanguageModel.create();
-                    myStatus.textContent = 'Session created. Sending text for summarization...';
-                }
-
                 const myTextValue = myTextInput.value;
                 if (!myTextValue.trim()) {
                     myStopTimer('Please enter text to summarize.');
                     return;
                 }
 
-                // Use the summarize method
-                const mySummary = await myLanguageModelSession.summarize(myTextValue);
+                // FIX: Use LanguageModel.summarize() directly without a session
+                const mySummary = await LanguageModel.summarize(myTextValue);
                 myOutput.value = mySummary;
                 myStopTimer("Summarization complete!");
 
@@ -126,4 +119,5 @@
         }
     </script>
 </body>
+
 </html>
