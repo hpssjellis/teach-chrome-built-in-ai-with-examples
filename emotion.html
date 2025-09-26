@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome AI: Emotional Well-being App</title>
+</head>
+
+<body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px;">
+    <h1 style="color: #4CAF50;">Chrome Built-in AI: Emotional Well-being App</h1>
+    <p>This application uses the Chrome Built-in AI to assist with emotional well-being. Select a tool below to begin.</p>
+
+    <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <h2 style="margin-top: 0;">Select a Tool</h2>
+        <select id="myFunctionSelector" onchange="myShowFunctionality(this.value)"
+            style="display: block; width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+            <option value="thoughtReframe">Thought Reframer</option>
+            <option value="mindfulMoment">Mindful Moment Generator</option>
+            <option value="journalingPrompt">Journaling Prompt</option>
+            <option value="affirmationGenerator">Affirmation Generator</option>
+            <option value="perspectiveShifter">Perspective Shifter</option>
+        </select>
+    </div>
+
+    <div id="myFunctionUI" style="margin-top: 20px;">
+        <!-- UI will be dynamically inserted here -->
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h2 style="margin-top: 0;">Status and Output</h2>
+        <p id="myStatus" style="font-style: italic; color: #555;">Ready. Select a tool to begin.</p>
+        <div id="myOutput"
+            style="min-height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #eee; white-space: pre-wrap; margin-top: 10px;">
+        </div>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>A Note on Chrome Flags</h2>
+        <p>To use these features, you must have the "Enable built-in AI" flag enabled in Chrome. Open a new tab, paste the link below, press Enter, enable the flag, and then restart Chrome.</p>
+        <input type="text" id="flagsLink" value="chrome://flags/#enable-built-in-ai" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer;"
+            onclick="myCopyFlagsLink()">
+        <br>
+        <button onclick="myCopyFlagsLink()"
+            style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Link & Open New
+            Tab</button>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>My GitHub</h2>
+        <p>You can find more of my work on my GitHub page:</p>
+        <p><a href="https://github.com/Jeremy-Ellis" target="_blank">github.com/Jeremy-Ellis</a></p>
+    </div>
+
+    <script>
+        // Use my descriptive names and camelCase
+        let myLanguageModelSession = null;
+        let myTimerInterval = null;
+        const myStatus = document.getElementById('myStatus');
+        const myOutput = document.getElementById('myOutput');
+        const myFunctionUI = document.getElementById('myFunctionUI');
+
+        // Function to start a simple timer
+        function myStartTimer() {
+            let mySeconds = 0;
+            myStatus.textContent = "Working... 0s";
+            myTimerInterval = setInterval(() => {
+                mySeconds++;
+                myStatus.textContent = `Working... ${mySeconds}s`;
+            }, 1000);
+        }
+
+        // Function to stop the timer
+        function myStopTimer(myMessage) {
+            if (myTimerInterval) {
+                clearInterval(myTimerInterval);
+                myTimerInterval = null;
+            }
+            myStatus.textContent = myMessage;
+        }
+
+        // Helper function to copy the flags link
+        function myCopyFlagsLink() {
+            const myFlagsInput = document.getElementById('flagsLink');
+            myFlagsInput.select();
+            myFlagsInput.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            window.open('about:blank', '_blank');
+        }
+
+        // Helper function to dynamically create a button
+        function myCreateButton(myLabel, myOnClick) {
+            return `<button onclick="${myOnClick}" style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #007bff; border: none; border-radius: 5px; cursor: pointer;">${myLabel}</button>`;
+        }
+
+        // Main function to process AI requests based on selection
+        async function myProcessAI() {
+            const mySelectedFunction = document.getElementById('myFunctionSelector').value;
+            myOutput.textContent = "";
+            myStartTimer();
+
+            try {
+                if (!('LanguageModel' in window)) {
+                    myStopTimer("Error: LanguageModel API not available. Make sure you are using a compatible Chrome version with the 'Enable built-in AI' flag turned on.");
+                    return;
+                }
+
+                if (!myLanguageModelSession) {
+                    myStatus.textContent = 'Creating AI session...';
+                    myLanguageModelSession = await LanguageModel.create();
+                    myStatus.textContent = 'Session created. Processing...';
+                }
+
+                switch (mySelectedFunction) {
+                    case 'thoughtReframe':
+                        const myNegativeThought = document.getElementById('myNegativeThoughtInput').value.trim();
+                        if (!myNegativeThought) {
+                            myStopTimer("Please enter a thought to reframe.");
+                            return;
+                        }
+                        const myThoughtPrompt = `Reframe the following negative thought into a positive or balanced statement. The new statement should be supportive and realistic. Negative thought:\n\n"${myNegativeThought}"`;
+                        const myReframedThought = await myLanguageModelSession.prompt(myThoughtPrompt);
+                        myOutput.textContent = myReframedThought;
+                        myStopTimer("Thought reframed!");
+                        break;
+                    case 'mindfulMoment':
+                        const myMindfulPrompt = `Generate a single, short, text-based mindfulness or grounding exercise. Do not use conversational language or introductions.`;
+                        const myMindfulExercise = await myLanguageModelSession.prompt(myMindfulPrompt);
+                        myOutput.textContent = myMindfulExercise;
+                        myStopTimer("Mindful moment generated!");
+                        break;
+                    case 'journalingPrompt':
+                        const myJournalingPrompt = `Generate a single, unique, and specific journaling prompt to encourage self-reflection.`;
+                        const myJournalPromptResult = await myLanguageModelSession.prompt(myJournalingPrompt);
+                        myOutput.textContent = myJournalPromptResult;
+                        myStopTimer("Prompt generated!");
+                        break;
+                    case 'affirmationGenerator':
+                        const myKeyword = document.getElementById('myAffirmationKeyword').value.trim();
+                        if (!myKeyword) {
+                            myStopTimer("Please enter a keyword.");
+                            return;
+                        }
+                        const myAffirmationPrompt = `Generate one short, positive affirmation based on the keyword "${myKeyword}". Respond with only the affirmation itself.`;
+                        const myAffirmation = await myLanguageModelSession.prompt(myAffirmationPrompt);
+                        myOutput.textContent = myAffirmation;
+                        myStopTimer("Affirmation generated!");
+                        break;
+                    case 'perspectiveShifter':
+                        const myFrustration = document.getElementById('myFrustrationInput').value.trim();
+                        if (!myFrustration) {
+                            myStopTimer("Please describe a frustration.");
+                            return;
+                        }
+                        const myPerspectivePrompt = `You are a wise and whimsical storyteller. Tell me a very short, fictional story about the following frustration from the perspective of an unexpected object, like a chair, a coffee mug, or a passing cloud. The goal is to offer a new perspective. My frustration: "${myFrustration}"`;
+                        const myStory = await myLanguageModelSession.prompt(myPerspectivePrompt);
+                        myOutput.textContent = myStory;
+                        myStopTimer("Story generated!");
+                        break;
+                    default:
+                        myStopTimer("Functionality not yet implemented.");
+                        break;
+                }
+            } catch (myError) {
+                myStopTimer("An error occurred. Check the console for details.");
+                console.error("Error:", myError);
+            }
+        }
+
+        // Functions to show/hide UI for each function
+        function myShowFunctionality(myFunction) {
+            myFunctionUI.innerHTML = '';
+            myStatus.textContent = 'Ready. Press "Run Function" when ready.';
+            myOutput.textContent = '';
+
+            let myHtml = '';
+            switch (myFunction) {
+                case 'thoughtReframe':
+                    myHtml = `<h2 style="margin-top: 0;">Thought Reframer</h2><textarea id="myNegativeThoughtInput" rows="5" placeholder="Enter a negative or anxious thought..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Reframe Thought", "myProcessAI()")}`;
+                    break;
+                case 'mindfulMoment':
+                    myHtml = `<h2 style="margin-top: 0;">Mindful Moment Generator</h2><p>Click the button to get a short, grounding mindfulness exercise.</p>${myCreateButton("Get Mindful Moment", "myProcessAI()")}`;
+                    break;
+                case 'journalingPrompt':
+                    myHtml = `<h2 style="margin-top: 0;">Journaling Prompt</h2><p>Click the button to get a unique journaling prompt.</p>${myCreateButton("Get Journaling Prompt", "myProcessAI()")}`;
+                    break;
+                case 'affirmationGenerator':
+                    myHtml = `<h2 style="margin-top: 0;">Affirmation Generator</h2><textarea id="myAffirmationKeyword" rows="1" placeholder="Enter a keyword (e.g., courage, patience)..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Generate Affirmation", "myProcessAI()")}`;
+                    break;
+                case 'perspectiveShifter':
+                    myHtml = `<h2 style="margin-top: 0;">Perspective Shifter</h2><textarea id="myFrustrationInput" rows="5" placeholder="Describe a small problem or frustration..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Get New Perspective", "myProcessAI()")}`;
+                    break;
+            }
+
+            myFunctionUI.innerHTML = myHtml;
+        }
+
+        // Initialize the app on page load
+        window.onload = () => {
+            myShowFunctionality('thoughtReframe'); // Show the first functionality by default
+        };
+    </script>
+</body>
+
+</html>
