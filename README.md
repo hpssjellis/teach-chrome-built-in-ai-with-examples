@@ -36,22 +36,10 @@ Also these are not for mobile phones.
 
 
 
-1.[chatbot.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/chatbot.html)
-
-1.[code.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/code.html)
-
-1.[emotion.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/emotion.html)
-
-1.[haiku.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/haiku.html)
-
-1.[historical.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/historical.html)
-
-1.[idea.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/idea.html)
 
 1.[index.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/index.html)
 
 1.[links.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/links.html)
-
 
 1.[multimodal-audio-stream-translate.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/multimodal-audio-stream-translate.html)
 
@@ -61,21 +49,15 @@ Also these are not for mobile phones.
 
 1.[multimodal-vision.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/multimodal-vision.html)
 
-1.[object-id.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/object-id.html)
-
 1.[prompt-stream.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/prompt-stream.html)
 
 1.[prompt.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/prompt.html)
 
 1.[proofreader.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/proofreader.html)
 
-1.[recipe.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/recipe.html)
+1.[recipe.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/more-demos/recipe.html)
 
 1.[rewriter.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/rewriter.html)
-
-1.[sentiment.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/sentiment.html)
-
-1.[simplify.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/simplify.html)
 
 1.[summarizer.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/summarizer.html)
 
@@ -89,6 +71,26 @@ Also these are not for mobile phones.
 
 
 
+
+# More-Demos
+
+
+1.[chatbot.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/more-demos/chatbot.html)
+
+1.[code.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/more-demos/code.html)
+
+1.[emotion.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/more-demos/emotion.html)
+
+1.[haiku.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/more-demos/haiku.html)
+
+1.[historical.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/more-demos/historical.html)
+
+1.[idea.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/more-demos/idea.html)
+1.[object-id.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/more-demos/object-id.html)
+
+1.[sentiment.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/more-demos/sentiment.html)
+
+1.[simplify.html](https://hpssjellis.github.io/teach-chrome-built-in-ai-with-examples/more-demos/simplify.html)
 
 
 
