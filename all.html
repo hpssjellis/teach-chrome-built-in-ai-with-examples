@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome AI: All-in-One App</title>
+</head>
+
+<body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px;">
+    <h1 style="color: #4CAF50;">Chrome Built-in AI: All-in-One App</h1>
+    <p>Select a function below to see how the Chrome Built-in AI can be used for different tasks. This app combines all the previous single-function examples into one page.</p>
+
+    <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <h2 style="margin-top: 0;">Select an AI Function</h2>
+        <select id="myFunctionSelector" onchange="myShowFunctionality(this.value)"
+            style="display: block; width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+            <option value="prompt">Prompt (Text-to-Text)</option>
+            <option value="streaming">Streaming Prompt</option>
+            <option value="summarize">Summarizer</option>
+            <option value="rewrite">Rewriter</option>
+            <option value="write">Writer</option>
+            <option value="multimodalSound">Multimodal (Sound to Text)</option>
+            <option value="multimodalVision">Multimodal (Vision)</option>
+            <option value="textToSpeech">Text-to-Speech (Web Speech API)</option>
+            <option value="translate">Translator</option>
+            <option value="chatbot">Chatbot</option>
+            <option value="creativeIdea">Creative Idea Generator</option>
+            <option value="sentimentAnalyzer">Sentiment Analyzer</option>
+            <option value="codeCommenter">Code Commenter</option>
+            <option value="objectIdentifier">Object Identifier</option>
+            <option value="explainLikeImFive">Explain Like I'm Five</option>
+            <option value="thoughtReframe">Thought Reframer</option>
+            <option value="mindfulMoment">Mindful Moment</option>
+            <option value="journalingPrompt">Journaling Prompt</option>
+            <option value="affirmationGenerator">Affirmation Generator</option>
+            <option value="perspectiveShifter">Perspective Shifter</option>
+        </select>
+    </div>
+
+    <div id="myFunctionUI" style="margin-top: 20px;">
+        <!-- UI will be dynamically inserted here -->
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h2 style="margin-top: 0;">Status and Output</h2>
+        <p id="myStatus" style="font-style: italic; color: #555;">Ready. Select a function to begin.</p>
+        <div id="myOutput"
+            style="min-height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #eee; white-space: pre-wrap; margin-top: 10px;">
+        </div>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>A Note on Chrome Flags</h2>
+        <p>To use most of these features, you must have the "Enable built-in AI" flag enabled in Chrome. Open a new tab, paste the link below, press Enter, enable the flag, and then restart Chrome.</p>
+        <input type="text" id="flagsLink" value="chrome://flags/#enable-built-in-ai" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer;"
+            onclick="myCopyFlagsLink()">
+        <br>
+        <button onclick="myCopyFlagsLink()"
+            style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Link & Open New
+            Tab</button>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>My GitHub</h2>
+        <p>You can find more of my work on my GitHub page:</p>
+        <p><a href="https://github.com/Jeremy-Ellis" target="_blank">github.com/Jeremy-Ellis</a></p>
+    </div>
+
+    <script>
+        // Use my descriptive names and camelCase
+        let myLanguageModelSession = null;
+        let myTimerInterval = null;
+        const myStatus = document.getElementById('myStatus');
+        const myOutput = document.getElementById('myOutput');
+        const myFunctionUI = document.getElementById('myFunctionUI');
+        const myChatHistory = [];
+        let myMicrophoneStream = null;
+        let myMediaRecorder = null;
+
+        // Function to start a simple timer
+        function myStartTimer() {
+            let mySeconds = 0;
+            myStatus.textContent = "Working... 0s";
+            myTimerInterval = setInterval(() => {
+                mySeconds++;
+                myStatus.textContent = `Working... ${mySeconds}s`;
+            }, 1000);
+        }
+
+        // Function to stop the timer
+        function myStopTimer(myMessage) {
+            if (myTimerInterval) {
+                clearInterval(myTimerInterval);
+                myTimerInterval = null;
+            }
+            myStatus.textContent = myMessage;
+        }
+
+        // Helper function to copy the flags link
+        function myCopyFlagsLink() {
+            const myFlagsInput = document.getElementById('flagsLink');
+            myFlagsInput.select();
+            myFlagsInput.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            window.open('about:blank', '_blank');
+        }
+
+        // Helper function to dynamically create a button
+        function myCreateButton(myLabel, myOnClick) {
+            return `<button onclick="${myOnClick}" style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #007bff; border: none; border-radius: 5px; cursor: pointer;">${myLabel}</button>`;
+        }
+
+        // Main function to process AI requests based on selection
+        async function myProcessAI() {
+            const mySelectedFunction = document.getElementById('myFunctionSelector').value;
+            myOutput.textContent = "";
+            myStartTimer();
+
+            try {
+                if (!('LanguageModel' in window)) {
+                    myStopTimer("Error: LanguageModel API not available. Make sure you are using a compatible Chrome version with the 'Enable built-in AI' flag turned on.");
+                    return;
+                }
+
+                if (!myLanguageModelSession) {
+                    myStatus.textContent = 'Creating AI session...';
+                    myLanguageModelSession = await LanguageModel.create();
+                    myStatus.textContent = 'Session created. Processing...';
+                }
+
+                switch (mySelectedFunction) {
+                    case 'prompt':
+                        const myPromptInput = document.getElementById('myPromptInput').value.trim();
+                        if (!myPromptInput) { myStopTimer("Please enter a prompt."); return; }
+                        const myResponse = await myLanguageModelSession.prompt(myPromptInput);
+                        myOutput.textContent = myResponse;
+                        myStopTimer("Prompt complete!");
+                        break;
+                    case 'streaming':
+                        const myStreamingPrompt = document.getElementById('myStreamingPromptInput').value.trim();
+                        if (!myStreamingPrompt) { myStopTimer("Please enter a prompt."); return; }
+                        const myStream = myLanguageModelSession.promptStreaming(myStreamingPrompt);
+                        for await (const myChunk of myStream) {
+                            myOutput.textContent += myChunk;
+                        }
+                        myStopTimer("Streaming complete!");
+                        break;
+                    case 'summarize':
+                        const myTextToSummarize = document.getElementById('mySummarizerInput').value.trim();
+                        if (!myTextToSummarize) { myStopTimer("Please paste some text to summarize."); return; }
+                        const mySummary = await myLanguageModelSession.summarize(myTextToSummarize);
+                        myOutput.textContent = mySummary;
+                        myStopTimer("Summarization complete!");
+                        break;
+                    case 'rewrite':
+                        const myTextToRewrite = document.getElementById('myRewriterInput').value.trim();
+                        if (!myTextToRewrite) { myStopTimer("Please paste some text to rewrite."); return; }
+                        const myRewrittenText = await myLanguageModelSession.rewrite(myTextToRewrite);
+                        myOutput.textContent = myRewrittenText;
+                        myStopTimer("Rewriting complete!");
+                        break;
+                    case 'write':
+                        const myWritePrompt = document.getElementById('myWriterInput').value.trim();
+                        if (!myWritePrompt) { myStopTimer("Please enter a prompt to write about."); return; }
+                        const myWrittenText = await myLanguageModelSession.write(myWritePrompt);
+                        myOutput.textContent = myWrittenText;
+                        myStopTimer("Writing complete!");
+                        break;
+                    case 'multimodalSound':
+                        // Multimodal Sound logic
+                        const myAudioFile = document.getElementById('myAudioFile').files[0];
+                        const myMicrophoneButton = document.getElementById('myMicrophoneButton');
+                        if (myAudioFile) {
+                            myStopTimer("Transcribing audio file...");
+                            const myTranscription = await myLanguageModelSession.prompt(new Blob([await myAudioFile.arrayBuffer()], { type: myAudioFile.type }));
+                            myOutput.textContent = myTranscription;
+                            myStopTimer("Transcription complete!");
+                        } else if (myMicrophoneButton.textContent === 'Stop Recording') {
+                            myMicrophoneButton.click();
+                        } else {
+                            myStopTimer("Please either select a file or start recording.");
+                        }
+                        break;
+                    case 'multimodalVision':
+                        // Multimodal Vision logic
+                        const myImageFile = document.getElementById('myImageFile').files[0];
+                        const myWebcamVideo = document.getElementById('myWebcamVideo');
+                        let myBlob = null;
+                        if (myImageFile) {
+                            myBlob = new Blob([await myImageFile.arrayBuffer()], { type: myImageFile.type });
+                            myStopTimer("Analyzing uploaded image...");
+                        } else if (myWebcamVideo.style.display !== 'none') {
+                            const myCanvas = document.createElement('canvas');
+                            myCanvas.width = myWebcamVideo.videoWidth;
+                            myCanvas.height = myWebcamVideo.videoHeight;
+                            myCanvas.getContext('2d').drawImage(myWebcamVideo, 0, 0, myCanvas.width, myCanvas.height);
+                            myBlob = await new Promise(resolve => myCanvas.toBlob(resolve, 'image/png'));
+                            myStopTimer("Analyzing webcam image...");
+                        } else {
+                            myStopTimer("Please upload an image or enable the webcam.");
+                            return;
+                        }
+                        const myVisionPrompt = "Describe this image in a concise sentence.";
+                        const myDescription = await myLanguageModelSession.prompt(myVisionPrompt, myBlob);
+                        myOutput.textContent = myDescription;
+                        myStopTimer("Analysis complete!");
+                        break;
+                    case 'textToSpeech':
+                        // Text-to-Speech logic (Web Speech API)
+                        const mySpeechText = document.getElementById('mySpeechInput').value.trim();
+                        const mySelectedVoiceURI = document.getElementById('myVoiceSelector').value;
+                        if (!mySpeechText) { myStopTimer("Please enter some text to speak."); return; }
+                        const mySpeechSynthesis = window.speechSynthesis;
+                        const myUtterance = new SpeechSynthesisUtterance(mySpeechText);
+                        const myVoices = mySpeechSynthesis.getVoices();
+                        myUtterance.voice = myVoices.find(voice => voice.voiceURI === mySelectedVoiceURI);
+                        myStatus.textContent = 'Speaking...';
+                        myUtterance.onend = () => myStopTimer("Speech complete!");
+                        myUtterance.onerror = () => myStopTimer("Error during speech.");
+                        mySpeechSynthesis.speak(myUtterance);
+                        break;
+                    case 'translate':
+                        const myTranslateInput = document.getElementById('myTranslateInput').value.trim();
+                        const mySourceLang = document.getElementById('mySourceLang').value;
+                        const myTargetLang = document.getElementById('myTargetLang').value;
+                        if (!myTranslateInput) { myStopTimer("Please enter text to translate."); return; }
+                        const myTranslationPrompt = `Translate the following text from ${mySourceLang} to ${myTargetLang}:\n\n${myTranslateInput}`;
+                        const myTranslation = await myLanguageModelSession.prompt(myTranslationPrompt);
+                        myOutput.textContent = myTranslation;
+                        myStopTimer("Translation complete!");
+                        break;
+                    case 'chatbot':
+                        const myUserMessage = document.getElementById('myChatInput').value.trim();
+                        if (!myUserMessage) return;
+                        myChatHistory.push({ role: 'user', text: myUserMessage });
+                        document.getElementById('myChatHistory').innerHTML += `<p><b>You:</b> ${myUserMessage}</p>`;
+                        document.getElementById('myChatInput').value = '';
+                        myStartTimer();
+                        const myChatResponse = await myLanguageModelSession.prompt(myChatHistory.map(m => m.text).join('\n'));
+                        myChatHistory.push({ role: 'model', text: myChatResponse });
+                        document.getElementById('myChatHistory').innerHTML += `<p><b>AI:</b> ${myChatResponse}</p>`;
+                        myStopTimer("Response complete!");
+                        break;
+                    case 'creativeIdea':
+                        const myIdeaPrompt = `Generate a unique and creative idea for a short story, a painting, or a new invention. Do not write the story itself, just provide the idea.`;
+                        const myIdea = await myLanguageModelSession.prompt(myIdeaPrompt);
+                        myOutput.textContent = myIdea;
+                        myStopTimer("Idea generated!");
+                        break;
+                    case 'sentimentAnalyzer':
+                        const mySentimentText = document.getElementById('mySentimentInput').value.trim();
+                        if (!mySentimentText) { myStopTimer("Please enter some text for sentiment analysis."); return; }
+                        const mySentimentPrompt = `Analyze the sentiment of the following text and classify it as either 'positive', 'negative', or 'neutral'. Respond with only the classification word. Text:\n\n${mySentimentText}`;
+                        const mySentiment = await myLanguageModelSession.prompt(mySentimentPrompt);
+                        myOutput.textContent = mySentiment;
+                        myStopTimer("Sentiment analyzed!");
+                        break;
+                    case 'codeCommenter':
+                        const myCodeToComment = document.getElementById('myCodeInput').value.trim();
+                        if (!myCodeToComment) { myStopTimer("Please paste some code to explain."); return; }
+                        const myCodePrompt = `Explain the following JavaScript code in plain English, and also provide a commented version of the code. Here is the code:\n\n\`\`\`javascript\n${myCodeToComment}\n\`\`\``;
+                        const myExplanation = await myLanguageModelSession.prompt(myCodePrompt);
+                        myOutput.textContent = myExplanation;
+                        myStopTimer("Explanation complete!");
+                        break;
+                    case 'objectIdentifier':
+                        const myImageInput = document.getElementById('myImageInput');
+                        const myFile = myImageInput.files[0];
+                        if (!myFile) { myStopTimer("Please select an image file first."); return; }
+                        const myBlobFile = new Blob([await myFile.arrayBuffer()], { type: myFile.type });
+                        const myObjectPrompt = `Identify the single main object in this image and provide a single, short, factual sentence about it. Do not use conversational language.`;
+                        const myObjectResult = await myLanguageModelSession.prompt(myObjectPrompt, myBlobFile);
+                        myOutput.textContent = myObjectResult;
+                        myStopTimer("Object identified!");
+                        break;
+                    case 'explainLikeImFive':
+                        const myComplexText = document.getElementById('myComplexTextInput').value.trim();
+                        if (!myComplexText) { myStopTimer("Please paste some text to simplify."); return; }
+                        const myFivePrompt = `Rewrite the following text so that it can be easily understood by a five-year-old child. Use simple words and short sentences. Text to simplify:\n\n${myComplexText}`;
+                        const mySimplifiedText = await myLanguageModelSession.prompt(myFivePrompt);
+                        myOutput.textContent = mySimplifiedText;
+                        myStopTimer("Text simplified!");
+                        break;
+                    case 'thoughtReframe':
+                        const myNegativeThought = document.getElementById('myNegativeThoughtInput').value.trim();
+                        if (!myNegativeThought) { myStopTimer("Please enter a thought to reframe."); return; }
+                        const myThoughtPrompt = `Reframe the following negative thought into a positive or balanced statement. The new statement should be supportive and realistic. Negative thought:\n\n"${myNegativeThought}"`;
+                        const myReframedThought = await myLanguageModelSession.prompt(myThoughtPrompt);
+                        myOutput.textContent = myReframedThought;
+                        myStopTimer("Thought reframed!");
+                        break;
+                    case 'mindfulMoment':
+                        const myMindfulPrompt = `Generate a single, short, text-based mindfulness or grounding exercise. Do not use conversational language or introductions.`;
+                        const myMindfulExercise = await myLanguageModelSession.prompt(myMindfulPrompt);
+                        myOutput.textContent = myMindfulExercise;
+                        myStopTimer("Mindful moment generated!");
+                        break;
+                    case 'journalingPrompt':
+                        const myJournalingPrompt = `Generate a single, unique, and specific journaling prompt to encourage self-reflection.`;
+                        const myJournalPromptResult = await myLanguageModelSession.prompt(myJournalingPrompt);
+                        myOutput.textContent = myJournalPromptResult;
+                        myStopTimer("Prompt generated!");
+                        break;
+                    case 'affirmationGenerator':
+                        const myKeyword = document.getElementById('myAffirmationKeyword').value.trim();
+                        if (!myKeyword) { myStopTimer("Please enter a keyword."); return; }
+                        const myAffirmationPrompt = `Generate one short, positive affirmation based on the keyword "${myKeyword}". Respond with only the affirmation itself.`;
+                        const myAffirmation = await myLanguageModelSession.prompt(myAffirmationPrompt);
+                        myOutput.textContent = myAffirmation;
+                        myStopTimer("Affirmation generated!");
+                        break;
+                    case 'perspectiveShifter':
+                        const myFrustration = document.getElementById('myFrustrationInput').value.trim();
+                        if (!myFrustration) { myStopTimer("Please describe a frustration."); return; }
+                        const myPerspectivePrompt = `You are a wise and whimsical storyteller. Tell me a very short, fictional story about the following frustration from the perspective of an unexpected object, like a chair, a coffee mug, or a passing cloud. The goal is to offer a new perspective. My frustration: "${myFrustration}"`;
+                        const myStory = await myLanguageModelSession.prompt(myPerspectivePrompt);
+                        myOutput.textContent = myStory;
+                        myStopTimer("Story generated!");
+                        break;
+                    default:
+                        myStopTimer("Functionality not yet implemented.");
+                        break;
+                }
+            } catch (myError) {
+                myStopTimer("An error occurred. Check the console for details.");
+                console.error("Error:", myError);
+            }
+        }
+
+        // Functions for specific UI logic (multimodal sound/vision, text-to-speech)
+        function myToggleMicrophone() {
+            const myMicrophoneButton = document.getElementById('myMicrophoneButton');
+            const myAudioElement = document.getElementById('myAudioPlayback');
+            if (myMicrophoneStream && myMediaRecorder) {
+                myMediaRecorder.stop();
+                myMicrophoneStream.getTracks().forEach(track => track.stop());
+                myMicrophoneStream = null;
+                myMicrophoneButton.textContent = 'Start Recording';
+                myStatus.textContent = "Processing recording...";
+                return;
+            }
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(myStream => {
+                    myMicrophoneStream = myStream;
+                    myAudioElement.srcObject = myStream;
+                    myMediaRecorder = new MediaRecorder(myStream);
+                    const myAudioChunks = [];
+                    myMediaRecorder.ondataavailable = myEvent => myAudioChunks.push(myEvent.data);
+                    myMediaRecorder.onstop = async () => {
+                        const myAudioBlob = new Blob(myAudioChunks, { type: 'audio/webm' });
+                        myOutput.textContent = 'Transcription will appear here...';
+                        myStatus.textContent = "Sending audio to AI...";
+                        try {
+                            const myTranscription = await myLanguageModelSession.prompt(myAudioBlob);
+                            myOutput.textContent = myTranscription;
+                            myStopTimer("Transcription complete!");
+                        } catch (myError) {
+                            myStopTimer("Error during transcription.");
+                            console.error("Transcription error:", myError);
+                        }
+                    };
+                    myMediaRecorder.start();
+                    myMicrophoneButton.textContent = 'Stop Recording';
+                    myStatus.textContent = 'Recording...';
+                })
+                .catch(myError => {
+                    myStatus.textContent = "Error accessing microphone. Check console.";
+                    console.error("Microphone access error:", myError);
+                });
+        }
+
+        function myToggleWebcam() {
+            const myWebcamVideo = document.getElementById('myWebcamVideo');
+            const myToggleWebcamButton = document.getElementById('myToggleWebcamButton');
+            if (myWebcamVideo.srcObject) {
+                myWebcamVideo.srcObject.getTracks().forEach(track => track.stop());
+                myWebcamVideo.srcObject = null;
+                myWebcamVideo.style.display = 'none';
+                myToggleWebcamButton.textContent = 'Enable Webcam';
+                myStatus.textContent = 'Webcam disabled.';
+            } else {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(myStream => {
+                        myWebcamVideo.srcObject = myStream;
+                        myWebcamVideo.style.display = 'block';
+                        myWebcamVideo.onloadedmetadata = () => myWebcamVideo.play();
+                        myToggleWebcamButton.textContent = 'Disable Webcam';
+                        myStatus.textContent = 'Webcam enabled.';
+                    })
+                    .catch(myError => {
+                        myStatus.textContent = "Error accessing webcam. Check console.";
+                        console.error("Webcam access error:", myError);
+                    });
+            }
+        }
+
+        function myLoadVoices() {
+            const myVoiceSelector = document.getElementById('myVoiceSelector');
+            if (myVoiceSelector) {
+                const myVoices = window.speechSynthesis.getVoices();
+                myVoiceSelector.innerHTML = ''; // Clear previous voices
+                myVoices.forEach(voice => {
+                    const myOption = document.createElement('option');
+                    myOption.textContent = voice.name;
+                    myOption.value = voice.voiceURI;
+                    myVoiceSelector.appendChild(myOption);
+                });
+            }
+        }
+        if (window.speechSynthesis) {
+            window.speechSynthesis.onvoiceschanged = myLoadVoices;
+        }
+
+        // Functions to show/hide UI for each function
+        function myShowFunctionality(myFunction) {
+            myFunctionUI.innerHTML = '';
+            myStatus.textContent = 'Ready. Press "Run Function" when ready.';
+            myOutput.textContent = '';
+            document.getElementById('myFunctionButton').textContent = "Run Function";
+
+            let myHtml = '';
+            switch (myFunction) {
+                case 'prompt':
+                    myHtml = `<h2 style="margin-top: 0;">Text-to-Text Prompt</h2><textarea id="myPromptInput" rows="10" placeholder="Enter your prompt here..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Run Prompt", "myProcessAI()")}`;
+                    break;
+                case 'streaming':
+                    myHtml = `<h2 style="margin-top: 0;">Streaming Prompt</h2><textarea id="myStreamingPromptInput" rows="10" placeholder="Enter your prompt here..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Start Streaming", "myProcessAI()")}`;
+                    break;
+                case 'summarize':
+                    myHtml = `<h2 style="margin-top: 0;">Summarizer</h2><textarea id="mySummarizerInput" rows="10" placeholder="Paste a long paragraph here..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Summarize Text", "myProcessAI()")}`;
+                    break;
+                case 'rewrite':
+                    myHtml = `<h2 style="margin-top: 0;">Rewriter</h2><textarea id="myRewriterInput" rows="10" placeholder="Paste text to rewrite here..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Rewrite Text", "myProcessAI()")}`;
+                    break;
+                case 'write':
+                    myHtml = `<h2 style="margin-top: 0;">Writer</h2><textarea id="myWriterInput" rows="10" placeholder="Enter a topic to write about..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Write Text", "myProcessAI()")}`;
+                    break;
+                case 'multimodalSound':
+                    myHtml = `<h2 style="margin-top: 0;">Sound to Text</h2><p>Upload an audio file or record from your microphone.</p><input type="file" id="myAudioFile" accept="audio/*" style="width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box;">${myCreateButton("Transcribe File", "myProcessAI()")}<button id="myMicrophoneButton" onclick="myToggleMicrophone()" style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #dc3545; border: none; border-radius: 5px; cursor: pointer;">Start Recording</button><audio id="myAudioPlayback" controls style="display: block; width: 100%; margin-top: 10px;"></audio>`;
+                    break;
+                case 'multimodalVision':
+                    myHtml = `<h2 style="margin-top: 0;">Vision</h2><p>Upload an image file or enable your webcam to analyze a frame.</p><input type="file" id="myImageFile" accept="image/*" style="width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box;"><button id="myToggleWebcamButton" onclick="myToggleWebcam()" style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #007bff; border: none; border-radius: 5px; cursor: pointer;">Enable Webcam</button><video id="myWebcamVideo" style="display: none; width: 100%; height: auto; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc;" autoplay muted></video>${myCreateButton("Analyze Image", "myProcessAI()")}`;
+                    break;
+                case 'textToSpeech':
+                    myHtml = `<h2 style="margin-top: 0;">Text-to-Speech</h2><p>Choose a voice and enter text to have it spoken aloud.</p><select id="myVoiceSelector" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px;"></select><textarea id="mySpeechInput" rows="5" placeholder="Enter text to speak..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Speak Text", "myProcessAI()")}`;
+                    if (window.speechSynthesis && window.speechSynthesis.onvoiceschanged) myLoadVoices();
+                    break;
+                case 'translate':
+                    myHtml = `<h2 style="margin-top: 0;">Translator</h2><p>Enter text and select languages to translate.</p><select id="mySourceLang" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px;"><option value="en">English</option><option value="es">Spanish</option><option value="fr">French</option></select><select id="myTargetLang" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px;"><option value="es">Spanish</option><option value="fr">French</option><option value="en">English</option></select><textarea id="myTranslateInput" rows="10" placeholder="Enter text to translate..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Translate Text", "myProcessAI()")}`;
+                    break;
+                case 'chatbot':
+                    myHtml = `<h2 style="margin-top: 0;">Chatbot</h2><div id="myChatHistory" style="height: 200px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; border-radius: 4px; background-color: #f0f0f0; margin-bottom: 10px;"></div><textarea id="myChatInput" rows="3" placeholder="Type your message here..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Send Message", "myProcessAI()")}`;
+                    myChatHistory.length = 0; // Clear history
+                    break;
+                case 'creativeIdea':
+                    myHtml = `<h2 style="margin-top: 0;">Creative Idea Generator</h2><p>Click the button to get a unique idea for a story, invention, or painting.</p>${myCreateButton("Get a Creative Idea", "myProcessAI()")}`;
+                    break;
+                case 'sentimentAnalyzer':
+                    myHtml = `<h2 style="margin-top: 0;">Sentiment Analyzer</h2><textarea id="mySentimentInput" rows="5" placeholder="Enter text to analyze sentiment..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Analyze Sentiment", "myProcessAI()")}`;
+                    break;
+                case 'codeCommenter':
+                    myHtml = `<h2 style="margin-top: 0;">Code Commenter</h2><textarea id="myCodeInput" rows="10" placeholder="Paste your JavaScript code here..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Explain Code", "myProcessAI()")}`;
+                    break;
+                case 'objectIdentifier':
+                    myHtml = `<h2 style="margin-top: 0;">Object Identifier</h2><input type="file" id="myImageInput" accept="image/*" style="width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box;"><img id="myImagePreview" src="#" alt="Image Preview" style="max-width: 100%; max-height: 300px; display: none; border-radius: 8px; border: 1px solid #ccc;">${myCreateButton("Identify Object", "myProcessAI()")}`;
+                    break;
+                case 'explainLikeImFive':
+                    myHtml = `<h2 style="margin-top: 0;">"Explain Like I'm Five"</h2><textarea id="myComplexTextInput" rows="10" placeholder="Paste complex text here..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Simplify Text", "myProcessAI()")}`;
+                    break;
+                case 'thoughtReframe':
+                    myHtml = `<h2 style="margin-top: 0;">Thought Reframer</h2><textarea id="myNegativeThoughtInput" rows="5" placeholder="Enter a negative or anxious thought..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Reframe Thought", "myProcessAI()")}`;
+                    break;
+                case 'mindfulMoment':
+                    myHtml = `<h2 style="margin-top: 0;">Mindful Moment Generator</h2><p>Click the button to get a short, grounding mindfulness exercise.</p>${myCreateButton("Get Mindful Moment", "myProcessAI()")}`;
+                    break;
+                case 'journalingPrompt':
+                    myHtml = `<h2 style="margin-top: 0;">Journaling Prompt</h2><p>Click the button to get a unique journaling prompt.</p>${myCreateButton("Get Journaling Prompt", "myProcessAI()")}`;
+                    break;
+                case 'affirmationGenerator':
+                    myHtml = `<h2 style="margin-top: 0;">Affirmation Generator</h2><textarea id="myAffirmationKeyword" rows="1" placeholder="Enter a keyword (e.g., courage, patience)..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Generate Affirmation", "myProcessAI()")}`;
+                    break;
+                case 'perspectiveShifter':
+                    myHtml = `<h2 style="margin-top: 0;">Perspective Shifter</h2><textarea id="myFrustrationInput" rows="5" placeholder="Describe a small problem or frustration..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>${myCreateButton("Get New Perspective", "myProcessAI()")}`;
+                    break;
+            }
+
+            myFunctionUI.innerHTML = myHtml;
+
+            // Add specific listeners for non-button UI
+            if (myFunction === 'multimodalVision') {
+                document.getElementById('myImageInput').addEventListener('change', (myEvent) => {
+                    const myFile = myEvent.target.files[0];
+                    const myImagePreview = document.getElementById('myImagePreview');
+                    if (myFile) {
+                        const myReader = new FileReader();
+                        myReader.onload = (myE) => {
+                            myImagePreview.src = myE.target.result;
+                            myImagePreview.style.display = 'block';
+                        };
+                        myReader.readAsDataURL(myFile);
+                    }
+                });
+            }
+        }
+
+        // Initialize the app on page load
+        window.onload = () => {
+            myShowFunctionality('prompt'); // Show the first functionality by default
+        };
+    </script>
+</body>
+
+</html>
