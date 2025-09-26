@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome AI: "Explain Like I'm Five"</title>
+</head>
+
+<body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px;">
+    <h1 style="color: #4CAF50;">Chrome Built-in AI: "Explain Like I'm Five"</h1>
+    <p>This example demonstrates how to use the built-in AI to simplify complex text. Paste a paragraph below and the AI will rewrite it for a young audience.</p>
+
+    <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <h2 style="margin-top: 0;">Simplify Text</h2>
+        <textarea id="myComplexTextInput" rows="10" placeholder="Paste complex text here..."
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
+        <button id="mySimplifyButton" onclick="mySimplifyText()"
+            style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #007bff; border: none; border-radius: 5px; cursor: pointer;">Simplify Text</button>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h2 style="margin-top: 0;">Status and Output</h2>
+        <p id="myStatus" style="font-style: italic; color: #555;">Ready. Paste some text and press "Simplify Text."</p>
+        <div id="myOutput"
+            style="min-height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #eee; white-space: pre-wrap; margin-top: 10px;">
+        </div>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>A Note on Chrome Flags</h2>
+        <p>To use this feature, you must have the "Enable built-in AI" flag enabled in Chrome. Open a new tab, paste the link below, press Enter, enable the flag, and then restart Chrome.</p>
+        <input type="text" id="flagsLink" value="chrome://flags/#enable-built-in-ai" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer;"
+            onclick="myCopyFlagsLink()">
+        <br>
+        <button onclick="myCopyFlagsLink()"
+            style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Link & Open New
+            Tab</button>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>My GitHub</h2>
+        <p>You can find more of my work on my GitHub page:</p>
+        <p><a href="https://github.com/Jeremy-Ellis" target="_blank">github.com/Jeremy-Ellis</a></p>
+    </div>
+
+    <script>
+        // Use my descriptive names and camelCase
+        let myLanguageModelSession = null;
+        let myTimerInterval = null;
+        const myStatus = document.getElementById('myStatus');
+        const myOutput = document.getElementById('myOutput');
+
+        // Function to start a simple timer to show activity
+        function myStartTimer() {
+            let mySeconds = 0;
+            myStatus.textContent = "Working... 0s";
+            myTimerInterval = setInterval(() => {
+                mySeconds++;
+                myStatus.textContent = `Working... ${mySeconds}s`;
+            }, 1000);
+        }
+
+        // Function to stop the timer and set the final status
+        function myStopTimer(myMessage) {
+            if (myTimerInterval) {
+                clearInterval(myTimerInterval);
+                myTimerInterval = null;
+            }
+            myStatus.textContent = myMessage;
+        }
+
+        // Main function to simplify the text
+        async function mySimplifyText() {
+            const myComplexText = document.getElementById('myComplexTextInput').value.trim();
+
+            if (!myComplexText) {
+                myStatus.textContent = "Please paste some text to simplify.";
+                return;
+            }
+
+            myOutput.textContent = "";
+            myStartTimer();
+
+            try {
+                if (!('LanguageModel' in window)) {
+                    myStopTimer("Error: LanguageModel API not available. Make sure you are using a compatible Chrome version with the 'Enable built-in AI' flag turned on.");
+                    return;
+                }
+
+                if (!myLanguageModelSession) {
+                    myStatus.textContent = 'Creating AI session...';
+                    myLanguageModelSession = await LanguageModel.create();
+                    myStatus.textContent = 'Session created. Simplifying text...';
+                }
+
+                const myPrompt = `Rewrite the following text so that it can be easily understood by a five-year-old child. Use simple words and short sentences. Text to simplify:\n\n${myComplexText}`;
+                const mySimplifiedText = await myLanguageModelSession.prompt(myPrompt);
+
+                myOutput.textContent = mySimplifiedText;
+                myStopTimer("Text simplified!");
+
+            } catch (myError) {
+                myStopTimer("An error occurred. Check the console for details.");
+                console.error("Error:", myError);
+            }
+        }
+
+        // Helper function to copy the flags link and open a new tab
+        function myCopyFlagsLink() {
+            const myFlagsInput = document.getElementById('flagsLink');
+            myFlagsInput.select();
+            myFlagsInput.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            window.open('about:blank', '_blank');
+        }
+    </script>
+</body>
+
+</html>
