@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome AI: Simple Multimodal Vision Example</title>
+</head>
+
+<body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px;">
+    <h1 style="color: #4CAF50;">Chrome Built-in AI: Simple Multimodal Vision</h1>
+    <p>This example demonstrates the ability of the built-in AI to handle multimodal input, specifically processing images. You can either upload an image file or take a picture using your webcam. The AI will then generate a description of the image content.</p>
+
+    <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <h2 style="margin-top: 0;">Image Input</h2>
+
+        <!-- File Upload Section -->
+        <p style="font-weight: bold;">Upload an image file:</p>
+        <input type="file" id="myImageFileInput" accept="image/*">
+        <button id="myExecuteFileButton" onclick="myExecuteFilePrompt()"
+            style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #4CAF50; border: none; border-radius: 5px; cursor: pointer;">Describe Image File</button>
+
+        <hr style="margin: 20px 0;">
+
+        <!-- Webcam Section -->
+        <p style="font-weight: bold;">Capture with your webcam:</p>
+        <div style="position: relative; text-align: center; margin-bottom: 10px;">
+            <video id="myWebcamVideo" autoplay muted playsinline
+                style="width: 100%; max-width: 400px; border: 2px solid #ccc; border-radius: 8px;"></video>
+            <canvas id="myWebcamCanvas" style="display: none;"></canvas>
+            <button id="myStartWebcamButton" onclick="myStartWebcam()"
+                style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #007bff; border: none; border-radius: 5px; cursor: pointer;">Start Webcam</button>
+            <button id="myCaptureButton" onclick="myCaptureAndPrompt()" disabled
+                style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #dc3545; border: none; border-radius: 5px; border-color: #dc3545; cursor: pointer;">Capture Image</button>
+        </div>
+        <p id="myWebcamStatus" style="font-style: italic; color: #555; text-align: center;">Webcam idle.</p>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h2 style="margin-top: 0;">Status and Output</h2>
+        <p id="myStatus" style="font-style: italic; color: #555;">Ready. Choose an image input method.</p>
+        <textarea id="myOutput" rows="10" readonly
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #eee; box-sizing: border-box; margin-top: 10px;"></textarea>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>A Note on Chrome Flags</h2>
+        <p>To use this feature, you must have the "Enable built-in AI" flag enabled in Chrome. Open a new tab, paste the link below, press Enter, enable the flag, and then restart Chrome.</p>
+        <input type="text" id="flagsLink" value="chrome://flags/#enable-built-in-ai" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer;"
+            onclick="myCopyFlagsLink()">
+        <br>
+        <button onclick="myCopyFlagsLink()" style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Link & Open New Tab</button>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>My GitHub</h2>
+        <p>You can find more of my work on my GitHub page:</p>
+        <p><a href="https://github.com/Jeremy-Ellis" target="_blank">github.com/Jeremy-Ellis</a></p>
+    </div>
+
+    <script>
+        // Use my descriptive names and camelCase
+        let myLanguageModelSession = null;
+        let myTimerInterval = null;
+        let myStream = null;
+
+        // Function to start a simple timer to show activity
+        function myStartTimer() {
+            let mySeconds = 0;
+            myStatus.textContent = "Working... 0s";
+            myTimerInterval = setInterval(() => {
+                mySeconds++;
+                myStatus.textContent = `Working... ${mySeconds}s`;
+            }, 1000);
+        }
+
+        // Function to stop the timer and set the final status
+        function myStopTimer(myMessage) {
+            if (myTimerInterval) {
+                clearInterval(myTimerInterval);
+                myTimerInterval = null;
+            }
+            myStatus.textContent = myMessage;
+        }
+
+        // Main function to execute the multimodal prompt with image data
+        async function myExecuteMultimodalPrompt(myImageBlob) {
+            const myOutput = document.getElementById('myOutput');
+            myOutput.value = "";
+            myStartTimer();
+
+            try {
+                if (!('LanguageModel' in window)) {
+                    myStopTimer("Error: LanguageModel API not available. Make sure you are using a compatible Chrome version with the 'Enable built-in AI' flag turned on.");
+                    return;
+                }
+
+                if (!myLanguageModelSession) {
+                    myStatus.textContent = 'Creating AI session...';
+                    myLanguageModelSession = await LanguageModel.create();
+                    myStatus.textContent = 'Session created. Sending image for description...';
+                }
+
+                const myGeneratedText = await myLanguageModelSession.prompt([{
+                    text: 'Describe the contents of this image:',
+                }, {
+                    image: myImageBlob,
+                }]);
+
+                myOutput.value = myGeneratedText;
+                myStopTimer("Description complete!");
+
+            } catch (myError) {
+                myStopTimer("An error occurred. Check the console for details.");
+                console.error("Error:", myError);
+            }
+        }
+
+        // Function to handle the image file input
+        async function myExecuteFilePrompt() {
+            const myImageFileInput = document.getElementById('myImageFileInput');
+            const myExecuteFileButton = document.getElementById('myExecuteFileButton');
+
+            if (myImageFileInput.files.length === 0) {
+                myStopTimer('Please select an image file first.');
+                return;
+            }
+
+            myExecuteFileButton.disabled = true;
+            myExecuteFileButton.style.backgroundColor = '#ccc';
+            myExecuteFileButton.textContent = 'Processing...';
+
+            const myImageFile = myImageFileInput.files[0];
+            await myExecuteMultimodalPrompt(myImageFile);
+
+            myExecuteFileButton.disabled = false;
+            myExecuteFileButton.style.backgroundColor = '#4CAF50';
+            myExecuteFileButton.textContent = 'Describe Image File';
+        }
+
+        // Function to start the webcam
+        async function myStartWebcam() {
+            const myWebcamVideo = document.getElementById('myWebcamVideo');
+            const myStartWebcamButton = document.getElementById('myStartWebcamButton');
+            const myCaptureButton = document.getElementById('myCaptureButton');
+            const myWebcamStatus = document.getElementById('myWebcamStatus');
+
+            try {
+                myStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                myWebcamVideo.srcObject = myStream;
+                myWebcamVideo.style.display = 'block';
+                myStartWebcamButton.style.display = 'none';
+                myCaptureButton.disabled = false;
+                myCaptureButton.style.display = 'block';
+                myWebcamStatus.textContent = 'Webcam active. Take a picture.';
+            } catch (myError) {
+                myWebcamStatus.textContent = 'Error starting webcam. Check permissions.';
+                console.error('Error accessing webcam:', myError);
+                myStartWebcamButton.disabled = false;
+                myStartWebcamButton.style.display = 'block';
+                myCaptureButton.style.display = 'none';
+            }
+        }
+
+        // Function to capture an image from the webcam feed and prompt the AI
+        async function myCaptureAndPrompt() {
+            const myWebcamVideo = document.getElementById('myWebcamVideo');
+            const myWebcamCanvas = document.getElementById('myWebcamCanvas');
+            const myCaptureButton = document.getElementById('myCaptureButton');
+            const myWebcamStatus = document.getElementById('myWebcamStatus');
+
+            if (!myStream || !myWebcamVideo.srcObject) {
+                myWebcamStatus.textContent = "Webcam not running. Please start it first.";
+                return;
+            }
+
+            myCaptureButton.disabled = true;
+            myCaptureButton.textContent = "Processing...";
+
+            // Set canvas dimensions to match video
+            myWebcamCanvas.width = myWebcamVideo.videoWidth;
+            myWebcamCanvas.height = myWebcamVideo.videoHeight;
+
+            // Draw the current video frame onto the canvas
+            const myContext = myWebcamCanvas.getContext('2d');
+            myContext.drawImage(myWebcamVideo, 0, 0, myWebcamCanvas.width, myWebcamCanvas.height);
+
+            // Get the image data as a Blob
+            myWebcamCanvas.toBlob(async (myBlob) => {
+                await myExecuteMultimodalPrompt(myBlob);
+                myCaptureButton.disabled = false;
+                myCaptureButton.textContent = "Capture Image";
+                myWebcamStatus.textContent = "Image captured and sent.";
+            }, 'image/jpeg');
+
+            // Stop the webcam feed after capturing
+            if (myStream) {
+                myStream.getTracks().forEach(track => track.stop());
+                myWebcamVideo.srcObject = null;
+                myWebcamVideo.style.display = 'none';
+                myStartWebcamButton.style.display = 'block';
+                myCaptureButton.style.display = 'none';
+            }
+        }
+
+        // Helper function to copy the flags link and open a new tab
+        function myCopyFlagsLink() {
+            const myFlagsInput = document.getElementById('flagsLink');
+            myFlagsInput.select();
+            myFlagsInput.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            window.open('about:blank', '_blank');
+        }
+    </script>
+</body>
+</html>
