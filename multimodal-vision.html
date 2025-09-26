@@ -14,7 +14,6 @@
     <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
         <h2 style="margin-top: 0;">Image Input</h2>
 
-        <!-- File Upload Section -->
         <p style="font-weight: bold;">Upload an image file:</p>
         <input type="file" id="myImageFileInput" accept="image/*">
         <button id="myExecuteFileButton" onclick="myExecuteFilePrompt()"
@@ -22,7 +21,6 @@
 
         <hr style="margin: 20px 0;">
 
-        <!-- Webcam Section -->
         <p style="font-weight: bold;">Capture with your webcam:</p>
         <div style="position: relative; text-align: center; margin-bottom: 10px;">
             <video id="myWebcamVideo" autoplay muted playsinline
@@ -102,14 +100,25 @@
 
                 if (!myLanguageModelSession) {
                     myStatus.textContent = 'Creating AI session...';
-                    myLanguageModelSession = await LanguageModel.create();
+                    // FIX #1: Added the expectedInputs parameter to create the multimodal session
+                    myLanguageModelSession = await LanguageModel.create({
+                        expectedInputs: [{
+                            type: 'image'
+                        }]
+                    });
                     myStatus.textContent = 'Session created. Sending image for description...';
                 }
 
+                // FIX #2: Corrected the prompt structure to conform to the multimodal API
                 const myGeneratedText = await myLanguageModelSession.prompt([{
-                    text: 'Describe the contents of this image:',
-                }, {
-                    image: myImageBlob,
+                    role: 'user',
+                    content: [{
+                        type: 'text',
+                        value: 'Describe the contents of this image:'
+                    }, {
+                        type: 'image',
+                        value: myImageBlob
+                    }]
                 }]);
 
                 myOutput.value = myGeneratedText;
@@ -151,7 +160,9 @@
             const myWebcamStatus = document.getElementById('myWebcamStatus');
 
             try {
-                myStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                myStream = await navigator.mediaDevices.getUserMedia({
+                    video: true
+                });
                 myWebcamVideo.srcObject = myStream;
                 myWebcamVideo.style.display = 'block';
                 myStartWebcamButton.style.display = 'none';
@@ -218,4 +229,5 @@
         }
     </script>
 </body>
+
 </html>
