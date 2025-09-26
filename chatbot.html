@@ -60,6 +60,7 @@
         const myChatHistoryDiv = document.getElementById('myChatHistory');
         const myUserInput = document.getElementById('myUserInput');
         const myStatus = document.getElementById('myStatus');
+        // We will store the full conversation history as simple strings to use with the prompt() method.
         const myConversationHistory = [];
 
         // Function to start a simple timer to show activity
@@ -119,18 +120,17 @@
                 }
 
                 // Add the user message to the conversation history for context
-                myConversationHistory.push({
-                    text: myUserMessage
-                });
+                myConversationHistory.push(`You: ${myUserMessage}`);
 
-                const myGeneratedText = await myLanguageModelSession.prompt(myConversationHistory);
+                // Join the history into a single string to use as the prompt
+                const myFullPrompt = myConversationHistory.join('\n');
+
+                const myGeneratedText = await myLanguageModelSession.prompt(myFullPrompt);
 
                 myStopTimer("Response received.");
 
                 // Add the AI's response to the conversation history
-                myConversationHistory.push({
-                    text: myGeneratedText
-                });
+                myConversationHistory.push(`AI: ${myGeneratedText}`);
 
                 myAddMessageToHistory(`AI: ${myGeneratedText}`, false);
 
