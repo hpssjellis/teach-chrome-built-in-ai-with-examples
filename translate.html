@@ -4,13 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chrome AI: Simple Translator Example</title>
+    <title>Chrome AI: Complete Translator</title>
     <style>
         body {
             font-family: sans-serif;
             max-width: 800px;
             margin: auto;
             padding: 20px;
+            line-height: 1.6;
         }
 
         h1 {
@@ -36,6 +37,10 @@
             border-radius: 5px;
             cursor: pointer;
         }
+        
+        .my-button:hover {
+            background-color: #45a049;
+        }
 
         .my-secondary-button {
             display: block;
@@ -50,48 +55,55 @@
             cursor: pointer;
         }
         
-        /* New CSS for resizable textareas */
+        .my-secondary-button:hover {
+            background-color: #5a6268;
+        }
+        
         textarea {
             width: 100%;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
             box-sizing: border-box;
-            resize: vertical; /* Allows the user to manually resize the textarea vertically */
+            resize: vertical;
         }
 
         .my-status {
             font-style: italic;
             color: #555;
         }
+
+        select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            flex: 1;
+        }
     </style>
 </head>
 
 <body>
-    <h1>Chrome Built-in AI: Simple Translator</h1>
-    <p>This example demonstrates how to use the built-in AI to translate text from one language to another. It uses the `LanguageModel.translate()` method, which is the most direct and efficient way to perform this task.</p>
+    <h1>Chrome Built-in AI: Complete Translator</h1>
+    <p>This application uses the dedicated `Translator` API to translate text. It also includes text-to-speech functionality using the Web Speech API.</p>
 
     <div class="my-container">
         <h2 style="margin-top: 0;">Text & Language Input</h2>
 
         <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
             <p style="font-weight: bold; margin: 0;">Translate from:</p>
-            <select id="mySourceLanguageSelect"
-                style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex: 1;">
+            <select id="mySourceLang">
                 <option value="en">English</option>
-                <option value="es">Spanish</option>
+                <option value="it">Italian</option>
                 <option value="fr">French</option>
+                <option value="es">Spanish</option>
                 <option value="de">German</option>
-                <option value="ja">Japanese</option>
-                <option value="zh">Chinese</option>
-                <option value="ru">Russian</option>
+                <option value="pt">Portuguese</option>
             </select>
         </div>
 
         <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
             <p style="font-weight: bold; margin: 0;">Translate into:</p>
-            <select id="myLanguageSelect"
-                style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex: 1;">
+            <select id="myTargetLang">
                 <option value="es">Spanish</option>
                 <option value="fr">French</option>
                 <option value="de">German</option>
@@ -102,137 +114,215 @@
             </select>
         </div>
 
-        <p style="font-weight: bold;">Enter text to translate:</p>
-        <textarea id="myTextToTranslate" rows="10" placeholder="Type or paste text here...">
-Hello how are you today?
-        </textarea>
+        <p style="font-weight: bold; margin-top: 15px;">Enter text to translate:</p>
+        <textarea id="myInput" rows="6" placeholder="Type text here...">Hello how are you today?</textarea>
 
-        <button id="myTranslateButton" onclick="myTranslateText()" class="my-button">Translate</button>
+        <button onclick="myHandleTranslateClick()" class="my-button">Translate</button>
+        <button onclick="myReleaseTranslator()" class="my-secondary-button">Release Translator</button>
 
-        <hr style="margin: 20px 0;">
-
-        <p style="font-weight: bold;">Load from a text file (.txt):</p>
-        <input type="file" id="myTextFileInput" accept=".txt">
-        <button id="myLoadFileButton" onclick="myLoadTextFile()" class="my-secondary-button">Load .txt File</button>
+        <p style="font-weight: bold; margin-top: 20px;">Status:</p>
+        <div id="myStatus" style="white-space:pre-wrap;" class="my-status">Ready.</div>
     </div>
 
     <div style="margin-top: 20px;">
-        <h2 style="margin-top: 0;">Status and Output</h2>
-        <p id="myStatus" class="my-status">Ready. Enter text and select a language.</p>
-        <textarea id="myOutput" rows="10" readonly
-            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #eee; box-sizing: border-box; margin-top: 10px;"></textarea>
+        <h2 style="margin-top: 0;">Translation Output</h2>
+        <textarea id="myOutput" rows="6" readonly placeholder="Translation here..."></textarea>
+        
+        <div style="margin-top: 15px;">
+            <label for="myVoiceSelect">Choose a voice:</label>
+            <select id="myVoiceSelect"></select>
+        </div>
+        
+        <button id="mySpeakButton" class="my-secondary-button">Speak Text</button>
+        <p id="myStatusMessage" class="my-status"></p>
     </div>
 
     <hr style="margin: 40px 0;">
 
     <div>
         <h2>A Note on Chrome Flags</h2>
-        <p>While the `LanguageModel.translate()` API is stable in recent Chrome versions (138+), some platforms may still require the `chrome://flags/#enable-built-in-ai` flag to be enabled, especially on older versions or for other AI features.</p>
+        <p>While the `Translator` API is stable in recent Chrome versions (138+), some platforms may still require the `chrome://flags/#enable-built-in-ai` flag to be enabled.</p>
         <input type="text" id="flagsLink" value="chrome://flags/#enable-built-in-ai" readonly
             style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer;"
             onclick="myCopyFlagsLink()">
         <br>
-        <button onclick="myCopyFlagsLink()"
-            style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Link & Open New
-            Tab</button>
+        <button onclick="myCopyFlagsLink()" style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Link & Open New Tab</button>
     </div>
 
     <hr style="margin: 40px 0;">
 
     <div>
         <h2>My GitHub</h2>
-        <p>You can find more of my work on my <a href="https://github.com/hpssjellis"> hpssjellis </a> GitHub page:</p>
-        <p> By Jeremy Ellis <a href="https://ca.linkedin.com/in/jeremy-ellis-4237a9bb"> LinkedIn </a><br></p>
+        <p>You can find more of my work on my <a href="https://github.com/hpssjellis">hpssjellis</a> GitHub page:</p>
+        <p>By Jeremy Ellis <a href="https://ca.linkedin.com/in/jeremy-ellis-4237a9bb">LinkedIn</a></p>
     </div>
 
     <script>
-        // Use my descriptive names and camelCase
+        let myTranslator = null;
         let myTimerInterval = null;
-        const myStatus = document.getElementById('myStatus');
-        const myTextToTranslate = document.getElementById('myTextToTranslate');
-        const mySourceLanguageSelect = document.getElementById('mySourceLanguageSelect');
-        const myLanguageSelect = document.getElementById('myLanguageSelect');
+        const myInput = document.getElementById('myInput');
         const myOutput = document.getElementById('myOutput');
+        const myStatus = document.getElementById('myStatus');
+        const mySourceLang = document.getElementById('mySourceLang');
+        const myTargetLang = document.getElementById('myTargetLang');
 
-        // Function to start a simple timer to show activity
+        const mySpeakButton = document.getElementById("mySpeakButton");
+        const myStatusMessage = document.getElementById("myStatusMessage");
+        const myVoiceSelect = document.getElementById("myVoiceSelect");
+
+        function mySetStatus(msg) {
+            myStatus.textContent = msg;
+        }
+
         function myStartTimer() {
-            let mySeconds = 0;
-            myStatus.textContent = "Translating... 0s";
+            let sec = 0;
+            mySetStatus("Translating... 0s");
             myTimerInterval = setInterval(() => {
-                mySeconds++;
-                myStatus.textContent = `Translating... ${mySeconds}s`;
+                sec++;
+                mySetStatus(`Translating... ${sec}s`);
             }, 1000);
         }
 
-        // Function to stop the timer and set the final status
-        function myStopTimer(myMessage) {
-            if (myTimerInterval) {
-                clearInterval(myTimerInterval);
-                myTimerInterval = null;
-            }
-            myStatus.textContent = myMessage;
+        function myStopTimer(msg) {
+            if (myTimerInterval) clearInterval(myTimerInterval);
+            myTimerInterval = null;
+            mySetStatus(msg);
         }
 
-        // Main function to execute the translation using the dedicated `translate()` method
-        async function myTranslateText() {
-            const myText = myTextToTranslate.value.trim();
-            const mySourceLanguage = mySourceLanguageSelect.value;
-            const myTargetLanguage = myLanguageSelect.value;
-            myOutput.value = "";
-
-            if (!myText) {
-                myStopTimer("Please enter some text to translate.");
-                return;
+        async function myCreateTranslator(source, target) {
+            if (!('Translator' in self)) {
+                mySetStatus('Translator API not available in this browser.');
+                return null;
             }
-
-            myStartTimer();
 
             try {
-                if (!('LanguageModel' in window)) {
-                    myStopTimer("Error: LanguageModel API not available. Make sure you are using a compatible Chrome version with the 'Enable built-in AI' flag turned on.");
-                    return;
-                }
-                
-                // Use the static translate() method for a clean and efficient translation
-                const myTranslatedText = await LanguageModel.translate(myText, {
-                    sourceLanguage: mySourceLanguage,
-                    targetLanguage: myTargetLanguage
-                });
-                
-                myOutput.value = myTranslatedText;
-                myStopTimer("Translation complete!");
+                mySetStatus(`Checking availability for ${source} → ${target}...`);
+                const avail = await Translator.availability({ sourceLanguage: source, targetLanguage: target });
+                mySetStatus(`Availability: ${avail}`);
+                if (avail === 'unavailable') return null;
 
-            } catch (myError) {
-                myStopTimer("An error occurred. Check the console for details.");
-                console.error("Error:", myError);
+                mySetStatus(`Creating translator for ${source} → ${target}...`);
+                const translator = await Translator.create({
+                    sourceLanguage: source,
+                    targetLanguage: target,
+                    monitor(m) {
+                        m.addEventListener('downloadprogress', ev => {
+                            const loaded = ev.loaded ?? 'unknown';
+                            const total = ev.total ?? 'unknown';
+                            mySetStatus(`Downloading model: ${loaded} / ${total} bytes`);
+                        });
+                    }
+                });
+                return translator;
+            } catch (err) {
+                mySetStatus('Error creating translator: ' + (err.message || err));
+                return null;
             }
         }
 
-        // Function to load a text file
-        async function myLoadTextFile() {
-            const myFileInput = document.getElementById('myTextFileInput');
-            if (myFileInput.files.length === 0) {
-                myStatus.textContent = 'Please select a .txt file first.';
+        async function myHandleTranslateClick() {
+            const text = myInput.value.trim();
+            if (!text) {
+                mySetStatus('Type some text first.');
                 return;
             }
 
-            myStatus.textContent = 'Loading file...';
-            const myFile = myFileInput.files[0];
-            const myReader = new FileReader();
+            const source = mySourceLang.value;
+            const target = myTargetLang.value;
 
-            myReader.onload = (event) => {
-                myTextToTranslate.value = event.target.result;
-                myStatus.textContent = 'File loaded successfully. You can now translate it.';
-            };
+            // If existing translator is for a different pair, release it
+            if (myTranslator && (myTranslator.sourceLanguage !== source || myTranslator.targetLanguage !== target)) {
+                await myReleaseTranslator();
+            }
 
-            myReader.onerror = (event) => {
-                myStatus.textContent = `Error loading file: ${event.error}`;
-                console.error('File reading error:', event.error);
-            };
+            if (!myTranslator) {
+                myTranslator = await myCreateTranslator(source, target);
+                if (!myTranslator) {
+                    mySetStatus('Translator could not be created.');
+                    return;
+                }
+            }
 
-            myReader.readAsText(myFile);
+            try {
+                myStartTimer();
+                const result = await myTranslator.translate(text);
+                myStopTimer('Translation complete.');
+                myOutput.value = result;
+            } catch (err) {
+                myStopTimer('Error during translation: ' + (err.message || err));
+                myOutput.value = '';
+            }
         }
 
+        async function myReleaseTranslator() {
+            if (myTranslator) {
+                try {
+                    if (typeof myTranslator.destroy === 'function') {
+                        await myTranslator.destroy();
+                    } else if (typeof myTranslator.close === 'function') {
+                        await myTranslator.close();
+                    }
+                } catch (err) {
+                    mySetStatus('Error releasing translator: ' + (err.message || err));
+                }
+                myTranslator = null;
+                mySetStatus('Translator released.');
+            } else {
+                mySetStatus('No translator to release.');
+            }
+        }
+
+        // --- Web Speech API (Text-to-Speech) Functions ---
+        const myPopulateVoiceList = () => {
+            const myVoices = window.speechSynthesis.getVoices();
+            myVoiceSelect.innerHTML = '';
+            
+            myVoices.forEach(voice => {
+                const option = document.createElement('option');
+                option.textContent = `${voice.name} (${voice.lang})`;
+                option.setAttribute('data-lang', voice.lang);
+                option.setAttribute('data-name', voice.name);
+                option.value = voice.name;
+                myVoiceSelect.appendChild(option);
+            });
+        };
+
+        window.speechSynthesis.addEventListener('voiceschanged', myPopulateVoiceList);
+        myPopulateVoiceList();
+
+        const mySpeakFunction = () => {
+            if (!('speechSynthesis' in window)) {
+                myStatusMessage.textContent = 'Sorry, your browser does not support the Web Speech API.';
+                return;
+            }
+
+            const myTextToSpeak = myOutput.value;
+            const mySelectedVoiceName = myVoiceSelect.value;
+            const mySelectedVoice = window.speechSynthesis.getVoices().find(voice => voice.name === mySelectedVoiceName);
+
+            if (myTextToSpeak.trim() === '') {
+                myStatusMessage.textContent = 'Please enter some text to speak.';
+                return;
+            }
+
+            const myUtterance = new SpeechSynthesisUtterance(myTextToSpeak);
+            myUtterance.voice = mySelectedVoice;
+
+            myStatusMessage.textContent = 'Speaking...';
+            
+            myUtterance.onend = () => {
+                myStatusMessage.textContent = 'Finished speaking.';
+            };
+
+            myUtterance.onerror = (event) => {
+                myStatusMessage.textContent = 'An error occurred: ' + event.error;
+            };
+
+            window.speechSynthesis.speak(myUtterance);
+        };
+
+        mySpeakButton.onclick = mySpeakFunction;
+        
         // Helper function to copy the flags link and open a new tab
         function myCopyFlagsLink() {
             const myFlagsInput = document.getElementById('flagsLink');
@@ -243,5 +333,4 @@ Hello how are you today?
         }
     </script>
 </body>
-
 </html>
