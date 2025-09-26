@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Speech API: Simple Text-to-Speech</title>
+</head>
+
+<body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px;">
+    <h1 style="color: #4CAF50;">Web Speech API: Simple Text-to-Speech</h1>
+    <p>This example demonstrates the browser's built-in Web Speech API. It can read aloud any text you type or load from a file. This is a separate browser feature and does not require the Chrome Built-in AI flags.</p>
+
+    <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <h2 style="margin-top: 0;">Text Input</h2>
+        <textarea id="myTextToSpeak" rows="10" placeholder="Type or paste text here to hear it spoken aloud..."
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
+
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button id="mySpeakButton" onclick="mySpeakText()"
+                style="flex: 1; padding: 10px; font-size: 16px; color: white; background-color: #4CAF50; border: none; border-radius: 5px; cursor: pointer;">Speak
+                Text</button>
+            <button id="myPauseButton" onclick="myPauseSpeech()" disabled
+                style="flex: 1; padding: 10px; font-size: 16px; color: white; background-color: #007bff; border: none; border-radius: 5px; cursor: pointer;">Pause</button>
+            <button id="myResumeButton" onclick="myResumeSpeech()" disabled
+                style="flex: 1; padding: 10px; font-size: 16px; color: white; background-color: #2196F3; border: none; border-radius: 5px; cursor: pointer;">Resume</button>
+            <button id="myStopButton" onclick="myStopSpeech()" disabled
+                style="flex: 1; padding: 10px; font-size: 16px; color: white; background-color: #dc3545; border: none; border-radius: 5px; cursor: pointer;">Stop</button>
+        </div>
+
+        <hr style="margin: 20px 0;">
+
+        <!-- File Upload Section -->
+        <p style="font-weight: bold;">Load from a text file (.txt):</p>
+        <input type="file" id="myTextFileInput" accept=".txt">
+        <button id="myLoadFileButton" onclick="myLoadTextFile()"
+            style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #6c757d; border: none; border-radius: 5px; cursor: pointer;">Load .txt File</button>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h2 style="margin-top: 0;">Status</h2>
+        <p id="myStatus" style="font-style: italic; color: #555;">Ready. Type some text and press "Speak Text."</p>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>My GitHub</h2>
+        <p>You can find more of my work on my GitHub page:</p>
+        <p><a href="https://github.com/Jeremy-Ellis" target="_blank">github.com/Jeremy-Ellis</a></p>
+    </div>
+
+    <script>
+        // Use my descriptive names and camelCase
+        let mySpeechSynthesis = window.speechSynthesis;
+        let myUtterance = null;
+        const myStatus = document.getElementById('myStatus');
+        const mySpeakButton = document.getElementById('mySpeakButton');
+        const myPauseButton = document.getElementById('myPauseButton');
+        const myResumeButton = document.getElementById('myResumeButton');
+        const myStopButton = document.getElementById('myStopButton');
+
+        // Function to set button states
+        function mySetButtonStates(speaking, paused) {
+            mySpeakButton.disabled = speaking || paused;
+            myPauseButton.disabled = !speaking || paused;
+            myResumeButton.disabled = !paused;
+            myStopButton.disabled = !speaking && !paused;
+        }
+
+        // Main function to speak the text
+        function mySpeakText() {
+            const myTextToSpeak = document.getElementById('myTextToSpeak').value;
+            if (!myTextToSpeak) {
+                myStatus.textContent = 'Please enter some text to speak.';
+                return;
+            }
+
+            myUtterance = new SpeechSynthesisUtterance(myTextToSpeak);
+
+            myUtterance.onstart = () => {
+                myStatus.textContent = 'Speaking...';
+                mySetButtonStates(true, false);
+            };
+
+            myUtterance.onend = () => {
+                myStatus.textContent = 'Finished speaking.';
+                mySetButtonStates(false, false);
+            };
+
+            myUtterance.onerror = (event) => {
+                myStatus.textContent = `Error: ${event.error}`;
+                mySetButtonStates(false, false);
+                console.error('SpeechSynthesis Error:', event.error);
+            };
+
+            mySpeechSynthesis.speak(myUtterance);
+        }
+
+        // Function to pause the speech
+        function myPauseSpeech() {
+            if (mySpeechSynthesis.speaking) {
+                mySpeechSynthesis.pause();
+                myStatus.textContent = 'Paused.';
+                mySetButtonStates(false, true);
+            }
+        }
+
+        // Function to resume the speech
+        function myResumeSpeech() {
+            if (mySpeechSynthesis.paused) {
+                mySpeechSynthesis.resume();
+                myStatus.textContent = 'Speaking...';
+                mySetButtonStates(true, false);
+            }
+        }
+
+        // Function to stop the speech
+        function myStopSpeech() {
+            mySpeechSynthesis.cancel();
+            myStatus.textContent = 'Stopped.';
+            mySetButtonStates(false, false);
+        }
+
+        // Function to load a text file
+        async function myLoadTextFile() {
+            const myFileInput = document.getElementById('myTextFileInput');
+            const myTextToSpeak = document.getElementById('myTextToSpeak');
+
+            if (myFileInput.files.length === 0) {
+                myStatus.textContent = 'Please select a .txt file first.';
+                return;
+            }
+
+            myStatus.textContent = 'Loading file...';
+            const myFile = myFileInput.files[0];
+            const myReader = new FileReader();
+
+            myReader.onload = (event) => {
+                myTextToSpeak.value = event.target.result;
+                myStatus.textContent = 'File loaded successfully.';
+            };
+
+            myReader.onerror = (event) => {
+                myStatus.textContent = `Error loading file: ${event.error}`;
+                console.error('File reading error:', event.error);
+            };
+
+            myReader.readAsText(myFile);
+        }
+
+        // Initial button state setup
+        mySetButtonStates(false, false);
+    </script>
+</body>
+
+</html>
