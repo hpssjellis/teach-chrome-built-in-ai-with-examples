@@ -1,0 +1,554 @@
+   /**
+         * Copies the content of the main output textarea to the HTML preview textarea.
+         */
+        function myViewHtmlOutput() {
+            myHtmlCodePreview.value = myExtractHTMLWithRegex(myOutputDiv.value);
+            myDisplayOutput("HTML code copied to the preview box. Click 'Render HTML in New Tab' to view it!", 'info', true);
+        }
+        /**
+         * Renders the HTML code from the preview textarea into a new browser tab.
+         */
+        function myRenderHtmlInNewTab() {
+            const myHtml = myHtmlCodePreview.value;
+            // The second argument of window.open() reuses a tab with the specified name.
+            // The tab's title is set by the <title> tag in the HTML content itself.
+            const myNewWindow = window.open('', 'my-Canvas');
+            myNewWindow.document.write(myHtml);
+            myNewWindow.document.close();
+            myDisplayOutput("HTML rendered in a new tab!", 'info', true);
+        }
+        /**
+         * Copies the HTML code from the preview textarea to the clipboard.
+         */
+        function myCopyHtmlToClipboard() {
+            const myHtmlCode = myHtmlCodePreview.value;
+            if (myHtmlCode) {
+                const myTempTextArea = document.createElement('textarea');
+                myTempTextArea.value = myHtmlCode;
+                document.body.appendChild(myTempTextArea);
+                myTempTextArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(myTempTextArea);
+                myDisplayOutput("HTML code has been copied to your clipboard!", 'info', true);
+            } else {
+                myDisplayOutput("There is no HTML code to copy. Please click 'View HTML to Edit' first.", 'error', true);
+            }
+        }
+        // --- End of New HTML Preview Functions ---
+        /**
+         * Function to copy the chrome://flags link to the clipboard and open a new tab.
+         */
+        function myCopyFlagsLink() {
+            const myFlagsInput = document.getElementById('flagsLink');
+            myFlagsInput.select();
+            myFlagsInput.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            window.open('about:blank', '_blank');
+            myDisplayOutput('Copied "chrome://flags" to clipboard and opened a new tab!', 'info', true);
+        }
+        /**
+         * Helper function to disable all relevant buttons during API calls.
+         */
+        function myDisableAllButtons() {
+            myCreateLanguageModelSessionBtn.disabled = true;
+            myCreateProofreaderSessionBtn.disabled = true;
+            myExecutePromptBtn.disabled = true;
+            myDisablePromptButtons();
+            myViewHtmlBtn.disabled = true;
+            myRenderHtmlBtn.disabled = false; // these are useful
+            myCopyHtmlBtn.disabled = false; // these are useful
+        }
+        /**
+         * Helper function to enable all relevant buttons after API calls.
+         */
+        function myEnableAllButtons() {
+            if (!myLanguageModelSession) {
+                myCreateLanguageModelSessionBtn.disabled = false;
+            }
+            if (!myProofreaderSession) {
+                myCreateProofreaderSessionBtn.disabled = false;
+            }
+            myExecutePromptBtn.disabled = false;
+            myEnablePromptButtons();
+            myViewHtmlBtn.disabled = false;
+            myRenderHtmlBtn.disabled = false;
+            myCopyHtmlBtn.disabled = false;
+        }
+        /**
+         * Helper function to disable all prompt preparation buttons.
+         */
+        function myDisablePromptButtons() {
+            myPrepSimplePromptBtn.disabled = true;
+            myPrepStreamPromptBtn.disabled = true;
+            myPrepMultimodalPromptBtn.disabled = true;
+            myPrepSummarizeBtn.disabled = true;
+            myPrepWriteBtn.disabled = true;
+            myPrepRewriteBtn.disabled = true;
+            myPrepProofreadBtn.disabled = true;
+        }
+        /**
+         * Helper function to enable all prompt preparation buttons.
+         */
+        function myEnablePromptButtons() {
+            // Enable LLM buttons only if LLM session exists
+            if (myLanguageModelSession) {
+                myPrepSimplePromptBtn.disabled = false;
+                myPrepStreamPromptBtn.disabled = false;
+                myPrepMultimodalPromptBtn.disabled = false;
+                myPrepSummarizeBtn.disabled = false;
+                myPrepWriteBtn.disabled = false;
+                myPrepRewriteBtn.disabled = false;
+            }
+            // Enable Proofreader button only if Proofreader session exists
+            if (myProofreaderSession) {
+                myPrepProofreadBtn.disabled = false;
+            }
+        }
+        // Initial check on page load
+        window.onload = async () => {
+            await myCheckAvailability('languageModel');
+            await myCheckAvailability('proofreader');
+            myDisablePromptButtons();
+            myExecutePromptBtn.disabled = true;
+            myExecutePromptBtn.style.backgroundColor = 'lightgray';
+            myViewHtmlBtn.disabled = true;
+            myRenderHtmlBtn.disabled = false;
+            myCopyHtmlBtn.disabled = true;
+        };
+        ////////////////////////////// translator scripts /////////////////////////////////////////
+        let myTranslator = null;
+        let myTimerIntervalTranslate = null;
+        function mySetStatus(msg) {
+            const d = document.getElementById('myStatus');
+            d.textContent = msg;
+        }
+        function myStartTimer() {
+            let sec = 0;
+            mySetStatus("Working... 0s");
+            myTimerIntervalTranslate = setInterval(() => {
+                sec++;
+                mySetStatus(`Working... ${sec}s`);
+            }, 1000);
+        }
+        function myStopTimer(msg) {
+            if (myTimerIntervalTranslate) clearInterval(myTimerIntervalTranslate);
+            myTimerIntervalTranslate = null;
+            mySetStatus(msg);
+        }
+        async function myCreateTranslator(source, target) {
+            if (!('Translator' in self)) {
+                mySetStatus('Translator API not available in this browser.');
+                return null;
+            }
+            try {
+                mySetStatus(`Checking availability for ${source} → ${target}...`);
+                const avail = await Translator.availability({
+                    sourceLanguage: source,
+                    targetLanguage: target
+                });
+                mySetStatus(`Availability: ${avail}`);
+                if (avail === 'unavailable') return null;
+                mySetStatus(`Creating translator for ${source} → ${target}...`);
+                const translator = await Translator.create({
+                    sourceLanguage: source,
+                    targetLanguage: target,
+                    monitor(m) {
+                        m.addEventListener('downloadprogress', ev => {
+                            const loaded = ev.loaded ?? 'unknown';
+                            const total = ev.total ?? 'unknown';
+                            mySetStatus(`Downloading model: ${loaded} / ${total} bytes`);
+                        });
+                    }
+                });
+                return translator;
+            } catch (err) {
+                mySetStatus('Error creating translator: ' + (err.message || err));
+                return null;
+            }
+        }
+        async function myHandleTranslateClick() {
+            const text = document.getElementById('myInput').value.trim();
+            if (!text) {
+                mySetStatus('Type some text first.');
+                return;
+            }
+            const source = document.getElementById('mySourceLang').value;
+            const target = document.getElementById('myTargetLang').value;
+            // If existing translator is for a different pair, release it
+            if (myTranslator && (myTranslator.sourceLanguage !== source || myTranslator.targetLanguage !== target)) {
+                await myReleaseTranslator();
+            }
+            if (!myTranslator) {
+                myTranslator = await myCreateTranslator(source, target);
+                if (!myTranslator) {
+                    mySetStatus('Translator could not be created.');
+                    return;
+                }
+            }
+            try {
+                myStartTimer();
+                const result = await myTranslator.translate(text);
+                myStopTimer('Translation complete.');
+                document.getElementById('myOutput').value = result;
+                // document.getElementById('myTextInput').value = result;
+            } catch (err) {
+                myStopTimer('Error during translation: ' + (err.message || err));
+                document.getElementById('myOutput').textContent = '';
+            }
+        }
+        async function myReleaseTranslator() {
+            if (myTranslator) {
+                try {
+                    if (typeof myTranslator.destroy === 'function') {
+                        await myTranslator.destroy();
+                    } else if (typeof myTranslator.close === 'function') {
+                        await myTranslator.close();
+                    }
+                } catch (err) {
+                    mySetStatus('Error releasing translator: ' + (err.message || err));
+                }
+                myTranslator = null;
+                mySetStatus('Translator released.');
+            } else {
+                mySetStatus('No translator to release.');
+            }
+        }
+        // to speak
+        // Use descriptive names and camelCase
+        const myTextInput = document.getElementById("myOutput");
+        const mySpeakButton = document.getElementById("mySpeakButton");
+        const myStatusMessage = document.getElementById("myStatusMessage");
+        const myVoiceSelect = document.getElementById("myVoiceSelect");
+        // Function to populate the voice dropdown
+        const myPopulateVoiceList = () => {
+            const myVoices = window.speechSynthesis.getVoices();
+            // Clear the voice select dropdown first
+            myVoiceSelect.innerHTML = '';
+            myVoices.forEach(voice => {
+                const option = document.createElement('option');
+                option.textContent = voice.name + ' (' + voice.lang + ')';
+                option.setAttribute('data-lang', voice.lang);
+                option.setAttribute('data-name', voice.name);
+                option.value = voice.name;
+                myVoiceSelect.appendChild(option);
+            });
+        };
+        // Listen for when the browser loads the voices
+        // This is a necessary step because voices are loaded asynchronously
+        window.speechSynthesis.addEventListener('voiceschanged', myPopulateVoiceList);
+        // Initial population if voices are already loaded
+        myPopulateVoiceList();
+        // Define the function
+        const mySpeakFunction = () => {
+            if ('speechSynthesis' in window) {
+                const myTextToSpeak = myTextInput.value;
+                const mySelectedVoiceName = myVoiceSelect.value;
+                const mySelectedVoice = window.speechSynthesis.getVoices().find(voice => voice.name === mySelectedVoiceName);
+                if (myTextToSpeak.trim() === '') {
+                    myStatusMessage.textContent = 'Please enter some text to speak.';
+                    return;
+                }
+                const myUtterance = new SpeechSynthesisUtterance(myTextToSpeak);
+                myUtterance.voice = mySelectedVoice;
+                // Set a simple status message while speaking
+                myStatusMessage.textContent = 'Speaking...';
+                myUtterance.onend = () => {
+                    myStatusMessage.textContent = 'Finished speaking.';
+                };
+                myUtterance.onerror = (event) => {
+                    myStatusMessage.textContent = 'An error occurred: ' + event.error;
+                };
+                window.speechSynthesis.speak(myUtterance);
+            } else {
+                myStatusMessage.textContent = 'Sorry, your browser does not support the Web Speech API.';
+            }
+        };
+        // Static link to the function on the button
+        mySpeakButton.onclick = mySpeakFunction;
+    </script>
+    <!--  Following are the scripts for multimodal image and sound.
+    Some Mac and older windows machines might not run the audio  code.
+-->
+    <script type="module">
+        // Element variables
+        const myImageInput = document.getElementById('myImageInput');
+        const myImagePreview = document.getElementById('myImagePreview');
+        const myAudioInput = document.getElementById('myAudioInput');
+        const myAudioPreview = document.getElementById('myAudioPreview');
+        const myOutputText = document.getElementById('myOutputText');
+        const myStatus = document.getElementById('myStatus');
+        const myWebcamPreview = document.getElementById('myWebcamPreview');
+        const myCaptureImageButton = document.getElementById('myCaptureImageButton');
+        const myStartRecordingButton = document.getElementById('myStartRecordingButton');
+        const myStopRecordingButton = document.getElementById('myStopRecordingButton');
+        const myDescribeButton = document.getElementById('myDescribeButton');
+        const myStopButton = document.getElementById('myStopButton');
+        const myCanvas = document.getElementById('myCanvas');
+        // State variables
+        let myImageBlob = null;
+        let myAudioBlob = null;
+        let myTimerId = null;
+        let myAnalysisTimerId = null;
+        let myAbortController = null;
+        let myTimeoutId = null;
+        let myMediaRecorder = null;
+        let myAudioChunks = [];
+       // let myMaxMilliSec = 30000;
+        // Image file selection handler
+        myImageInput.onchange = async (event) => {
+            document.getElementById('myAudioImagePrompt').value = ''  // blank prompt for safety
+            const myFile = event.target.files[0];
+            if (myFile) {
+                myImageBlob = myFile;
+                myAudioBlob = null; // Clear other media
+                myImagePreview.src = URL.createObjectURL(myFile);
+                myImagePreview.style.display = 'block';
+                myWebcamPreview.style.display = 'none';
+                myAudioPreview.style.display = 'none';
+                myCaptureImageButton.style.display = 'none';
+                myOutputText.textContent = 'Image selected. Ready to describe...';
+                myStatus.textContent = '';
+            }
+        };
+        // Audio file selection handler
+        myAudioInput.onchange = async (event) => {
+            document.getElementById('myAudioImagePrompt').value = ''  // blank prompt for safety
+            const myFile = event.target.files[0];
+            if (myFile) {
+                myAudioBlob = myFile;
+                myImageBlob = null; // Clear other media
+                myAudioPreview.src = URL.createObjectURL(myFile);
+                myAudioPreview.style.display = 'block';
+                myImagePreview.style.display = 'none';
+                myWebcamPreview.style.display = 'none';
+                myCaptureImageButton.style.display = 'none';
+                myOutputText.textContent = 'Audio file selected. Ready to describe...';
+                myStatus.textContent = '';
+            }
+        };
+        // Start webcam functionality
+        window.myStartWebcam = async () => {
+            document.getElementById('myAudioImagePrompt').value = ''  // blank prompt for safety
+            try {
+                const myStream = await navigator.mediaDevices.getUserMedia({
+                    video: true
+                });
+                myWebcamPreview.srcObject = myStream;
+                myWebcamPreview.style.display = 'block';
+                myWebcamPreview.play();
+                myCaptureImageButton.style.display = 'block';
+                myImageInput.style.display = 'none';
+                myImagePreview.style.display = 'none';
+                // myAudioInput.style.display = 'none';
+                myAudioPreview.style.display = 'none';
+                myOutputText.textContent = 'Webcam active. Click "Capture Image" to continue.';
+                myImageBlob = null;
+                myAudioBlob = null;
+            } catch (error) {
+                myOutputText.textContent = 'Error starting webcam: ' + error.message;
+            }
+        };
+        // Capture image from webcam
+        window.myCaptureImage = () => {
+            myCanvas.width = myWebcamPreview.videoWidth;
+            myCanvas.height = myWebcamPreview.videoHeight;
+            const myContext = myCanvas.getContext('2d');
+            myContext.drawImage(myWebcamPreview, 0, 0, myCanvas.width, myCanvas.height);
+            myCanvas.toBlob((myBlob) => {
+                myImageBlob = myBlob;
+                myAudioBlob = null;
+                myImagePreview.src = URL.createObjectURL(myBlob);
+                myImagePreview.style.display = 'block';
+                myWebcamPreview.pause();
+                myWebcamPreview.srcObject.getTracks().forEach(track => track.stop());
+                myWebcamPreview.style.display = 'none';
+                myCaptureImageButton.style.display = 'none';
+                myImageInput.style.display = 'block';
+                myOutputText.textContent = 'Image captured. Ready to describe...';
+            }, 'image/jpeg');
+        };
+        // Start audio recording
+        window.myStartAudioRecording = async () => {
+            try {
+                const myStream = await navigator.mediaDevices.getUserMedia({
+                    audio: true
+                });
+                myMediaRecorder = new MediaRecorder(myStream);
+                myAudioChunks = [];
+                myMediaRecorder.ondataavailable = (event) => {
+                    myAudioChunks.push(event.data);
+                };
+                myMediaRecorder.onstop = () => {
+                    myAudioBlob = new Blob(myAudioChunks, {
+                        type: 'audio/mpeg'
+                    });
+                    myAudioPreview.src = URL.createObjectURL(myAudioBlob);
+                    myAudioPreview.style.display = 'block';
+                    myOutputText.textContent = 'Audio recorded. Ready to describe...';
+                    myStatus.textContent = '';
+                    myImageBlob = null;
+                    myAudioInput.style.display = 'block';
+                    myImageInput.style.display = 'block';
+                };
+                myMediaRecorder.start();
+                myStatus.textContent = 'Recording audio...';
+                myStartRecordingButton.style.display = 'none';
+                myStopRecordingButton.style.display = 'block';
+            } catch (error) {
+                myOutputText.textContent = 'Error starting mic: ' + error.message;
+            }
+        };
+        // Stop audio recording
+        window.myStopAudioRecording = () => {
+            if (myMediaRecorder && myMediaRecorder.state !== 'inactive') {
+                myMediaRecorder.stop();
+                myMediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+            myStatus.textContent = 'Recording stopped.';
+            myStartRecordingButton.style.display = 'block';
+            myStopRecordingButton.style.display = 'none';
+        };
+        // Stop description process
+        window.myStopDescription = () => {
+            if (myAbortController) {
+                myAbortController.abort();
+                myAbortController = null;
+            }
+            clearInterval(myTimerId);
+            clearInterval(myAnalysisTimerId);
+            clearTimeout(myTimeoutId);
+            myStatus.textContent = 'Process stopped.';
+            myDescribeButton.disabled = false;
+            myStopButton.style.display = 'none';
+        };
+        // Start the description process
+        window.myStartDescription = async () => {
+            if (!myImageBlob && !myAudioBlob) {
+                myOutputText.textContent = 'Please select or capture media first.';
+                return;
+            }
+            myDescribeButton.disabled = true;
+            myStopButton.style.display = 'block';
+            myAbortController = new AbortController();
+            let mySeconds = 0;
+            myOutputText.textContent = 'Model is being downloaded...';
+            myTimerId = setInterval(() => {
+                mySeconds++;
+                myOutputText.textContent = `Model is being downloaded... ${mySeconds} seconds`;
+            }, 1000);
+
+            /*
+            myTimeoutId = setTimeout(() => {
+                if (myAbortController) {
+                    myAbortController.abort();
+                }
+            }, 300000); // 30 second timeout
+
+            */
+            try {
+                const myExpectedInputs = myImageBlob ? [{
+                    type: 'image'
+                }] : [{
+                    type: 'audio'
+                }];
+                // Log information about the AI model and its parameters
+                console.log('Attempting to create a Language Model session with expected inputs:', myExpectedInputs);
+                console.log('Note: The Language Model API does not expose parameters like topk or temperature.');
+                const mySession = await LanguageModel.create({
+                    expectedInputs: myExpectedInputs,
+                });
+                // Log information after the session is successfully created
+                console.log('Language Model session created successfully. Ready for prompt streaming.');
+                clearInterval(myTimerId);
+                myOutputText.textContent = '';
+                let myAnalysisSeconds = 0;
+                myAnalysisTimerId = setInterval(() => {
+                    myAnalysisSeconds++;
+                    myStatus.textContent = `Analyzing... ${myAnalysisSeconds} seconds`;
+                }, 1000);
+                const myContentType = myImageBlob ? 'image' : 'audio';
+                const myContentValue = myImageBlob || myAudioBlob;
+                console.log('myContentType');
+                console.log(myContentType);
+                console.log('myContentValue');
+                console.log(myContentValue);
+
+
+
+                let myPromptValue = `Transcribe this ${myContentType} quickly`; // default sound
+                if (document.getElementById('myAudioImagePrompt').value.length === 0 ){
+                    if (myContentType === 'image') {
+                        myPromptValue = `Output text recognition of this ${myContentType} and then fully describe the image.`; // switch for image
+                    }
+                    document.getElementById('myAudioImagePrompt').value = myPromptValue   // show the prompt on the webpage
+                } else {
+                    myPromptValue = document.getElementById('myAudioImagePrompt').value 
+                }
+
+                
+                // Log the prompt being sent to the model
+                console.log(`Sending prompt to the model: "${myPromptValue}"`);
+                const myStream = mySession.promptStreaming([{
+                    role: 'user',
+                    content: [{
+                        type: myContentType,
+                        value: myContentValue,
+                    }, {
+                        type: 'text',
+                        value: myPromptValue,
+                    }, ],
+                }, ], {
+                    signal: myAbortController.signal
+                }, {
+                    outputLanguage: 'en'
+                }); // Added outputLanguage parameter
+                for await (const myChunk of myStream) {
+                    myOutputText.append(myChunk);
+                }
+                clearInterval(myAnalysisTimerId);
+                clearTimeout(myTimeoutId);
+                myStatus.textContent = 'Analysis complete.';
+                // Log when the description is finished
+                console.log('Description finished. Output is now on the page.');
+                console.log(myOutputText.innerHTML)
+                // let myString = myOutputText.innerHTML;
+                // let myRegex = /(?:##\s*Transcription\s*of\s*Audio:\s*")(.+)(?:".*)/;
+                // let myResult = myString.replace(myRegex, "$1");
+                // console.log(myResult);
+                document.getElementById('myInput').value = myOutputText.innerHTML;
+                document.getElementById('myOutput').value = myOutputText.innerHTML;
+            } catch (error) {
+                clearInterval(myTimerId);
+                clearInterval(myAnalysisTimerId);
+                clearTimeout(myTimeoutId);
+                if (error.name === 'AbortError') {
+                    myStatus.textContent = 'Description process was stopped.';
+                    console.error('The user aborted the process.');
+                } else {
+                    myStatus.textContent = 'An error occurred. Please check the console for details.';
+                    console.error('An error occurred during the model interaction:', error);
+                }
+            } finally {
+                myAbortController = null;
+                myDescribeButton.disabled = false;
+                myStopButton.style.display = 'none';
+            }
+        };
+        /**
+         * Function to copy the chrome://flags link to the clipboard and open a new tab.
+         */
+        window.copyFlagsLink = async () => {
+            const flagsInput = document.getElementById('flagsLink');
+            flagsInput.select();
+            flagsInput.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            window.open('about:blank', '_blank');
+            // myStatus.textContent =`Copied "chrome://flags" to clipboard and opened a new tab!`;
+        }
+    </script>
+    Use at your own risk!
+    <br>
+    By Jeremy Ellis <a href="https://ca.linkedin.com/in/jeremy-ellis-4237a9bb"> LinkedIn </a><br>
+    Google Reference: <a href="https://developer.chrome.com/docs/ai/built-in">developer.chrome.com/docs/ai/built-in</a>
+</body>
+</html>
