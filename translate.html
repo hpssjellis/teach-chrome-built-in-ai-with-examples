@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chrome AI: Complete Translator</title>
+    <title>Chrome AI: Simple Translator</title>
     <style>
         body {
             font-family: sans-serif;
@@ -37,7 +37,7 @@
             border-radius: 5px;
             cursor: pointer;
         }
-        
+
         .my-button:hover {
             background-color: #45a049;
         }
@@ -54,11 +54,11 @@
             border-radius: 5px;
             cursor: pointer;
         }
-        
+
         .my-secondary-button:hover {
             background-color: #5a6268;
         }
-        
+
         textarea {
             width: 100%;
             padding: 10px;
@@ -83,8 +83,8 @@
 </head>
 
 <body>
-    <h1>Chrome Built-in AI: Complete Translator</h1>
-    <p>This application uses the dedicated `Translator` API to translate text. It also includes text-to-speech functionality using the Web Speech API.</p>
+    <h1>Chrome Built-in AI: Simple Translator</h1>
+    <p>This application uses the dedicated `Translator` API to translate text. It's designed to be a standalone, efficient tool for on-device translation.</p>
 
     <div class="my-container">
         <h2 style="margin-top: 0;">Text & Language Input</h2>
@@ -127,14 +127,6 @@
     <div style="margin-top: 20px;">
         <h2 style="margin-top: 0;">Translation Output</h2>
         <textarea id="myOutput" rows="6" readonly placeholder="Translation here..."></textarea>
-        
-        <div style="margin-top: 15px;">
-            <label for="myVoiceSelect">Choose a voice:</label>
-            <select id="myVoiceSelect"></select>
-        </div>
-        
-        <button id="mySpeakButton" class="my-secondary-button">Speak Text</button>
-        <p id="myStatusMessage" class="my-status"></p>
     </div>
 
     <hr style="margin: 40px 0;">
@@ -165,10 +157,6 @@
         const myStatus = document.getElementById('myStatus');
         const mySourceLang = document.getElementById('mySourceLang');
         const myTargetLang = document.getElementById('myTargetLang');
-
-        const mySpeakButton = document.getElementById("mySpeakButton");
-        const myStatusMessage = document.getElementById("myStatusMessage");
-        const myVoiceSelect = document.getElementById("myVoiceSelect");
 
         function mySetStatus(msg) {
             myStatus.textContent = msg;
@@ -272,57 +260,6 @@
             }
         }
 
-        // --- Web Speech API (Text-to-Speech) Functions ---
-        const myPopulateVoiceList = () => {
-            const myVoices = window.speechSynthesis.getVoices();
-            myVoiceSelect.innerHTML = '';
-            
-            myVoices.forEach(voice => {
-                const option = document.createElement('option');
-                option.textContent = `${voice.name} (${voice.lang})`;
-                option.setAttribute('data-lang', voice.lang);
-                option.setAttribute('data-name', voice.name);
-                option.value = voice.name;
-                myVoiceSelect.appendChild(option);
-            });
-        };
-
-        window.speechSynthesis.addEventListener('voiceschanged', myPopulateVoiceList);
-        myPopulateVoiceList();
-
-        const mySpeakFunction = () => {
-            if (!('speechSynthesis' in window)) {
-                myStatusMessage.textContent = 'Sorry, your browser does not support the Web Speech API.';
-                return;
-            }
-
-            const myTextToSpeak = myOutput.value;
-            const mySelectedVoiceName = myVoiceSelect.value;
-            const mySelectedVoice = window.speechSynthesis.getVoices().find(voice => voice.name === mySelectedVoiceName);
-
-            if (myTextToSpeak.trim() === '') {
-                myStatusMessage.textContent = 'Please enter some text to speak.';
-                return;
-            }
-
-            const myUtterance = new SpeechSynthesisUtterance(myTextToSpeak);
-            myUtterance.voice = mySelectedVoice;
-
-            myStatusMessage.textContent = 'Speaking...';
-            
-            myUtterance.onend = () => {
-                myStatusMessage.textContent = 'Finished speaking.';
-            };
-
-            myUtterance.onerror = (event) => {
-                myStatusMessage.textContent = 'An error occurred: ' + event.error;
-            };
-
-            window.speechSynthesis.speak(myUtterance);
-        };
-
-        mySpeakButton.onclick = mySpeakFunction;
-        
         // Helper function to copy the flags link and open a new tab
         function myCopyFlagsLink() {
             const myFlagsInput = document.getElementById('flagsLink');
