@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Speech API: Live Audio Transcriber</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #4CAF50;
+        }
+
+        .my-container {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #myOutput {
+            min-height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #eee;
+            white-space: pre-wrap;
+            margin-top: 10px;
+        }
+
+        #myStatus {
+            font-style: italic;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Web Speech API: Live Audio Transcriber</h1>
+    <p>This application uses the Web Speech API to transcribe your voice live. Click "Start Recording" to begin speaking. The transcription will appear as you talk.</p>
+
+    <div class="my-container">
+        <h2>Live Transcription</h2>
+        <button onclick="myToggleRecording()" id="myRecordButton">Start Recording</button>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h2>Status and Output</h2>
+        <p id="myStatus">Ready.</p>
+        <div id="myOutput"></div>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>My GitHub</h2>
+        <p>You can find more of my work on my GitHub page:</p>
+        <p><a href="https://github.com/Jeremy-Ellis" target="_blank">github.com/Jeremy-Ellis</a></p>
+    </div>
+
+    <script>
+        let mySpeechRecognition = null;
+        let myIsRecording = false;
+        const myRecordButton = document.getElementById('myRecordButton');
+        const myStatus = document.getElementById('myStatus');
+        const myOutput = document.getElementById('myOutput');
+
+        // Function to create and configure the speech recognition object
+        function myCreateSpeechRecognition() {
+            if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+                const myRecognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                myRecognition.interimResults = true; // Get results as they are being spoken
+                myRecognition.lang = 'en-US';
+                return myRecognition;
+            } else {
+                myStatus.textContent = "Error: Web Speech API is not supported in this browser.";
+                return null;
+            }
+        }
+
+        // Function to start or stop recording
+        function myToggleRecording() {
+            if (!mySpeechRecognition) {
+                mySpeechRecognition = myCreateSpeechRecognition();
+                if (!mySpeechRecognition) return;
+
+                // Event listener for when a result is received
+                mySpeechRecognition.onresult = (event) => {
+                    let myInterimTranscript = '';
+                    let myFinalTranscript = '';
+                    for (const myResult of event.results) {
+                        if (myResult.isFinal) {
+                            myFinalTranscript += myResult[0].transcript;
+                        } else {
+                            myInterimTranscript += myResult[0].transcript;
+                        }
+                    }
+                    myOutput.textContent = myFinalTranscript + myInterimTranscript;
+                };
+
+                // Event listener for when the speech recognition ends
+                mySpeechRecognition.onend = () => {
+                    if (myIsRecording) {
+                        mySpeechRecognition.start(); // Restart if still recording
+                    } else {
+                        myStatus.textContent = "Recording stopped.";
+                    }
+                };
+                
+                mySpeechRecognition.onerror = (event) => {
+                    myStopRecording(event.error);
+                };
+            }
+
+            if (!myIsRecording) {
+                myStartRecording();
+            } else {
+                myStopRecording();
+            }
+        }
+
+        // Function to start the recording process
+        function myStartRecording() {
+            myIsRecording = true;
+            myRecordButton.textContent = "Stop Recording";
+            myStatus.textContent = "Listening...";
+            myOutput.textContent = '';
+            mySpeechRecognition.start();
+        }
+
+        // Function to stop the recording process
+        function myStopRecording(myError = null) {
+            myIsRecording = false;
+            myRecordButton.textContent = "Start Recording";
+            mySpeechRecognition.stop();
+            if (myError) {
+                myStatus.textContent = `Error: ${myError}`;
+            }
+        }
+    </script>
+</body>
+
+</html>
