@@ -150,7 +150,7 @@
         // Function to create and configure the speech recognition object
         function myCreateSpeechRecognition() {
             if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-                const myRecognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                const myRecognition = new(window.SpeechRecognition || window.webkitSpeechRecognition)();
                 myRecognition.interimResults = true;
                 myRecognition.lang = mySourceLanguageSelect.value;
                 return myRecognition;
@@ -208,7 +208,8 @@
                     myTranscriptionOutput.textContent = myFinalTranscript + myInterimTranscript;
 
                     if (myFinalTranscript.trim().length > 0) {
-                        myConversationLog.textContent += myFinalTranscript + "\n";
+                        // Append transcription to conversation log
+                        myConversationLog.textContent += `User: ${myFinalTranscript.trim()}\n`;
                         myProcessTranslation(myFinalTranscript.trim());
                     }
                 };
@@ -271,12 +272,20 @@
 
                 const mySourceLanguage = mySourceLanguageSelect.value;
                 const myTargetLanguage = myTargetLanguageSelect.value;
-                const myTranslationPrompt = `Translate the following ${mySourceLanguage} text into ${myTargetLanguage}:\n\n${myTextToTranslate}`;
-                const myStream = myLanguageModelSession.promptStreaming(myTranslationPrompt);
+                const myPrompt = `Translate the following ${mySourceLanguage} text into ${myTargetLanguage}:\n\n${myTextToTranslate}`;
+
+                // FIX 1: Correctly format the prompt for the prompt() method
+                // FIX 2: Enable streaming by passing {stream: true} as an option
+                const myStream = await myLanguageModelSession.prompt(myPrompt, { stream: true });
 
                 for await (const myChunk of myStream) {
                     myTranslationOutput.textContent += myChunk;
                 }
+                
+                // FIX 3: Append the final translation to the conversation log
+                myConversationLog.textContent += `AI: ${myTranslationOutput.textContent}\n`;
+                // Automatically scroll to the bottom of the log
+                myConversationLog.scrollTop = myConversationLog.scrollHeight;
 
                 myStopTimer("Translation complete!");
 
