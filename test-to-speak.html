@@ -16,6 +16,12 @@
         <textarea id="myTextToSpeak" rows="10" placeholder="Type or paste text here to hear it spoken aloud..."
             style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
 
+        <!-- Voice Selection -->
+        <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+            <p style="font-weight: bold; margin: 0;">Select Voice:</p>
+            <select id="myVoiceSelect" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex: 1;"></select>
+        </div>
+
         <div style="display: flex; gap: 10px; margin-top: 10px;">
             <button id="mySpeakButton" onclick="mySpeakText()"
                 style="flex: 1; padding: 10px; font-size: 16px; color: white; background-color: #4CAF50; border: none; border-radius: 5px; cursor: pointer;">Speak
@@ -59,6 +65,7 @@
         const myPauseButton = document.getElementById('myPauseButton');
         const myResumeButton = document.getElementById('myResumeButton');
         const myStopButton = document.getElementById('myStopButton');
+        const myVoiceSelect = document.getElementById('myVoiceSelect');
 
         // Function to set button states
         function mySetButtonStates(speaking, paused) {
@@ -66,6 +73,24 @@
             myPauseButton.disabled = !speaking || paused;
             myResumeButton.disabled = !paused;
             myStopButton.disabled = !speaking && !paused;
+        }
+
+        // Function to populate the voice list dropdown
+        function myPopulateVoiceList() {
+            const myVoices = mySpeechSynthesis.getVoices();
+            myVoiceSelect.innerHTML = '';
+            myVoices.forEach(voice => {
+                const myOption = document.createElement('option');
+                myOption.textContent = `${voice.name} (${voice.lang})`;
+                myOption.value = voice.name;
+                myVoiceSelect.appendChild(myOption);
+            });
+        }
+
+        // Call the function initially and also on the 'voiceschanged' event
+        myPopulateVoiceList();
+        if (mySpeechSynthesis.onvoiceschanged !== undefined) {
+            mySpeechSynthesis.onvoiceschanged = myPopulateVoiceList;
         }
 
         // Main function to speak the text
@@ -77,6 +102,13 @@
             }
 
             myUtterance = new SpeechSynthesisUtterance(myTextToSpeak);
+
+            // Set the voice based on user selection
+            const mySelectedVoiceName = myVoiceSelect.value;
+            const mySelectedVoice = mySpeechSynthesis.getVoices().find(voice => voice.name === mySelectedVoiceName);
+            if (mySelectedVoice) {
+                myUtterance.voice = mySelectedVoice;
+            }
 
             myUtterance.onstart = () => {
                 myStatus.textContent = 'Speaking...';
@@ -125,8 +157,6 @@
         // Function to load a text file
         async function myLoadTextFile() {
             const myFileInput = document.getElementById('myTextFileInput');
-            const myTextToSpeak = document.getElementById('myTextToSpeak');
-
             if (myFileInput.files.length === 0) {
                 myStatus.textContent = 'Please select a .txt file first.';
                 return;
