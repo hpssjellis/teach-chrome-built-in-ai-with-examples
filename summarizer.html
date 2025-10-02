@@ -9,22 +9,21 @@
 
 <body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px;">
     <h1 style="color: #4CAF50;">Chrome Built-in AI: Simple Summarizer</h1>
-    <p>This example shows how to use the <code>window.ai.summarize()</code> method. Provide a long text below, and the model will generate a concise summary of the key points for you. **Make sure the Chrome AI flag is enabled!**</p>
+    <p>This example now correctly uses the two-step **<code>Summarizer.create()</code>** and **<code>summarizer.summarize()</code>** method as described in the Chrome developer documentation. The initial click will create and download the necessary AI model.</p>
 
     <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
         <h2 style="margin-top: 0;">Text to Summarize</h2>
         <textarea id="myTextInput" rows="10" placeholder="Paste a long text here..."
             style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
-Artificial Intelligence (AI) is a wide-ranging branch of computer science concerned with building smart machines capable of performing tasks that typically require human intelligence. This encompasses everything from learning, reasoning, problem-solving, perception, and language understanding. The field of AI has undergone several boom and bust cycles, but recent advancements, particularly in machine learning and deep learning, have led to unprecedented progress. Machine learning is a subset of AI that uses algorithms to allow systems to automatically learn and improve from experience without being explicitly programmed. Deep learning, in turn, is a subset of machine learning that utilizes neural networks with many layers (hence 'deep') to analyze complex data, such as images, sound, and text, with remarkable accuracy. These developments are rapidly transforming industries like healthcare, finance, and transportation, raising both excitement about new possibilities and ethical questions about job displacement and algorithmic bias. The goal is to create AI that can not only augment human capabilities but also address some of the world's most challenging problems.
+Artificial Intelligence (AI) is a wide-ranging branch of computer science concerned with building smart machines capable of performing tasks that typically require human intelligence. This encompasses everything from learning, reasoning, problem-solving, perception, and language understanding. The field of AI has undergone several boom and bust cycles, but recent advancements, particularly in machine learning and deep learning, have led to unprecedented progress. Machine learning is a subset of AI that uses algorithms to allow systems to automatically learn and improve from experience without being explicitly programmed. Deep learning, in turn, is a subset of machine learning that utilizes neural networks with many layers (hence 'deep') to analyze complex data, such as images, sound, and text, with remarkable accuracy. These developments are rapidly transforming industries like healthcare, finance, and transportation, raising both excitement about new possibilities and ethical questions about job displacement and algorithmic bias. The goal is to create AI that can not only augment human capabilities but also address some of of the world's most challenging problems.
 </textarea>
         <button id="myExecuteButton" onclick="myExecuteSummarizer()"
-            style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #4CAF50; border: none; border-radius: 5px; cursor: pointer;">Summarize
-            Text</button>
+            style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #4CAF50; border: none; border-radius: 5px; cursor: pointer;">Initialize AI and Summarize</button>
     </div>
 
     <div style="margin-top: 20px;">
         <h2 style="margin-top: 0;">Status and Output</h2>
-        <p id="myStatus" style="font-style: italic; color: #555;">Ready. Click the button to summarize the default text.</p>
+        <p id="myStatus" style="font-style: italic; color: #555;">Ready. Click the button to initialize the AI and summarize.</p>
         <textarea id="myOutput" rows="5" readonly
             style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #eee; box-sizing: border-box; margin-top: 10px;"></textarea>
     </div>
@@ -52,6 +51,7 @@ Artificial Intelligence (AI) is a wide-ranging branch of computer science concer
     <script>
         // Use my descriptive names and camelCase
         let myTimerInterval = null;
+        let mySummarizer = null; // Global variable to store the Summarizer object
 
         // Function to start a simple timer to show activity
         function myStartTimer() {
@@ -86,9 +86,9 @@ Artificial Intelligence (AI) is a wide-ranging branch of computer science concer
             myExecuteButton.style.backgroundColor = '#ccc';
 
             try {
-                // CORRECTION: Check for the 'ai' object instead of 'LanguageModel'
-                if (!('ai' in window)) {
-                    myStopTimer("Error: Chrome AI API (window.ai) not available. Make sure you are using a compatible Chrome version with the 'Enable built-in AI' flag turned on.");
+                // Check if the Summarizer API is available
+                if (!('Summarizer' in window)) {
+                    myStopTimer("Error: Summarizer API (window.Summarizer) not found. Check Chrome version/flags.");
                     return;
                 }
 
@@ -100,22 +100,39 @@ Artificial Intelligence (AI) is a wide-ranging branch of computer science concer
                     myStopTimer('Please enter text to summarize.');
                     return;
                 }
+                
+                // STEP 1: Create the summarizer object if it hasn't been created yet.
+                if (mySummarizer === null) {
+                    myStatus.textContent = "Initializing AI model (first time setup/download)...";
+                    
+                    // The create call can take time and may require user activation.
+                    // Simplified options for the example: key-points, medium length.
+                    const myOptions = {
+                        type: 'key-points',
+                        length: 'medium',
+                    };
+                    
+                    mySummarizer = await Summarizer.create(myOptions);
+                }
 
-                // CORRECTION: Correctly use window.ai.summarize()
+                // STEP 2: Use the created object to perform the summarization
                 myStatus.textContent = "Requesting summary from Chrome AI...";
-                const mySummary = await window.ai.summarize(myTextValue);
+                
+                // The summarize() call takes the text and an optional context object.
+                const mySummary = await mySummarizer.summarize(myTextValue);
                 
                 myOutput.value = mySummary;
                 myStopTimer("Summarization complete! (Click to run again)");
 
             } catch (myError) {
-                // Improved error handling
+                // Log and inform the user of the error
+                mySummarizer = null; // Reset object on failure to try creation again
                 if (myError.message.includes('not supported') || myError.message.includes('permission')) {
-                    myStopTimer("Error: Feature not enabled or supported. Check Chrome's built-in AI settings or the flags link below.");
+                    myStopTimer("Error: Feature not enabled or supported. Check Chrome's built-in AI settings.");
                 } else {
                     myStopTimer("An error occurred. Check the console for details.");
                 }
-                console.error("Error:", myError);
+                console.error("Chrome Summarizer API Error:", myError);
             } finally {
                 // Re-enable button and restore color
                 myExecuteButton.disabled = false;
