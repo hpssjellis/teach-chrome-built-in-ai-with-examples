@@ -9,7 +9,7 @@
 
 <body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px;">
     <h1 style="color: #4CAF50;">Chrome Built-in AI: Simple Summarizer</h1>
-    <p>This example shows how to use the <code>LanguageModel.summarize()</code> method. Provide a long text below, and the model will generate a concise summary of the key points for you. This is a non-streaming operation. **Make sure the Chrome AI flag is enabled!**</p>
+    <p>This example shows how to use the <code>window.ai.summarize()</code> method. Provide a long text below, and the model will generate a concise summary of the key points for you. **Make sure the Chrome AI flag is enabled!**</p>
 
     <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
         <h2 style="margin-top: 0;">Text to Summarize</h2>
@@ -74,7 +74,7 @@ Artificial Intelligence (AI) is a wide-ranging branch of computer science concer
             myStatus.textContent = myMessage;
         }
 
-        // Main function to execute the summarizer
+        // Main function to execute the summarizer (FIXED)
         async function myExecuteSummarizer() {
             const myTextInput = document.getElementById('myTextInput');
             const myOutput = document.getElementById('myOutput');
@@ -86,8 +86,9 @@ Artificial Intelligence (AI) is a wide-ranging branch of computer science concer
             myExecuteButton.style.backgroundColor = '#ccc';
 
             try {
-                if (!('LanguageModel' in window)) {
-                    myStopTimer("Error: LanguageModel API not available. Make sure you are using a compatible Chrome version with the 'Enable built-in AI' flag turned on.");
+                // CORRECTION: Check for the 'ai' object instead of 'LanguageModel'
+                if (!('ai' in window)) {
+                    myStopTimer("Error: Chrome AI API (window.ai) not available. Make sure you are using a compatible Chrome version with the 'Enable built-in AI' flag turned on.");
                     return;
                 }
 
@@ -100,16 +101,17 @@ Artificial Intelligence (AI) is a wide-ranging branch of computer science concer
                     return;
                 }
 
-                // FIX: Correctly use LanguageModel.summarize() for a non-streaming summary
-                const mySummary = await LanguageModel.summarize(myTextValue);
+                // CORRECTION: Correctly use window.ai.summarize()
+                myStatus.textContent = "Requesting summary from Chrome AI...";
+                const mySummary = await window.ai.summarize(myTextValue);
                 
                 myOutput.value = mySummary;
                 myStopTimer("Summarization complete! (Click to run again)");
 
             } catch (myError) {
-                // Check for a common error where the feature is available but not enabled/ready
-                if (myError.message.includes('permission')) {
-                    myStopTimer("Error: Permission denied. Check Chrome's built-in AI settings or the flags link below.");
+                // Improved error handling
+                if (myError.message.includes('not supported') || myError.message.includes('permission')) {
+                    myStopTimer("Error: Feature not enabled or supported. Check Chrome's built-in AI settings or the flags link below.");
                 } else {
                     myStopTimer("An error occurred. Check the console for details.");
                 }
@@ -126,7 +128,6 @@ Artificial Intelligence (AI) is a wide-ranging branch of computer science concer
             const myFlagsInput = document.getElementById('myFlagsLink');
             myFlagsInput.select();
             myFlagsInput.setSelectionRange(0, 99999);
-            // document.execCommand('copy') is deprecated, but kept for simplicity/compatibility
             document.execCommand('copy'); 
             window.open('about:blank', '_blank');
         }
