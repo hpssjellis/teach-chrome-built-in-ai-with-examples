@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Grab Info v1.16.0",
+  "version": "1.16.0",
+  "description": "Extracts all or selected content from the active page into a side panel.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  },
+  "background": {
+    "service_worker": "service_worker.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  }
+}

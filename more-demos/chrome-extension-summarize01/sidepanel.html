@@ -1,0 +1,33 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Extractor</title>
+    <!-- Link the sidepanel logic -->
+    <script src="sidepanel.js" type="module"></script>
+</head>
+<body style="margin: 0; padding: 16px; min-height: 100vh; display: flex; flex-direction: column;">
+    <div class="container" style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px;">
+        <h1 style="font-size: 1.25rem;">Page Content Extractor & Summarizer</h1>
+
+        <!-- Control Buttons -->
+        <div class="button-group" style="display: flex; gap: 8px;">
+            <button id="showAllBtn" style="flex: 1; padding: 8px; cursor: pointer;">
+                Summarize All Text
+            </button>
+            <button id="showSelectedBtn" style="flex: 1; padding: 8px; cursor: pointer;">
+                Summarize Selection
+            </button>
+        </div>
+
+        <!-- Message/Status Area -->
+        <div id="statusMessage" style="font-size: 0.875rem; color: #4b5563;">Click a button to summarize content.</div>
+
+        <!-- Content Display Area -->
+        <textarea id="contentArea" readonly placeholder="Summary will appear here..." style="flex-grow: 1; width: 100%; padding: 12px; resize: none; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
+
+    </div>
+</body>
+</html>
