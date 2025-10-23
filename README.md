@@ -30,10 +30,6 @@ The youtube playlist link is at
 ![remember-all-built-in-ai](https://img.youtube.com/vi/fmYsk5E7PMM/0.jpg)](https://www.youtube.com/watch?v=fmYsk5E7PMM&list=PL57Dnr1H_egsvfrvJdJdeVPaHVmy87S0i&index=1&pp=iAQB)
 
 
-## old one
-
-[https://www.youtube.com/watch?v=jkzfRUsQZgY&list=PL57Dnr1H_egsvfrvJdJdeVPaHVmy87S0i&index=5&pp=iAQB
-![remember-all-built-in-ai](https://img.youtube.com/vi/jkzfRUsQZgY/0.jpg)](https://www.youtube.com/watch?v=jkzfRUsQZgY&list=PL57Dnr1H_egsvfrvJdJdeVPaHVmy87S0i&index=5&pp=iAQB)
 
 
 
