@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome AI: Simple Rewriter Example</title>
+</head>
+
+<body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px;">
+    <h1 style="color: #4CAF50;">Chrome Built-in AI: Simple Rewriter</h1>
+    <p>This example shows how to use the <code>ai.rewriter.rewrite()</code> method to rephrase a given text. This is a non-streaming operation.</p>
+
+    <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <h2 style="margin-top: 0;">Text to Rewrite</h2>
+        <textarea id="myTextInput" rows="10" placeholder="Paste the text you want to rewrite here..."
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">The team has decided to move forward with the new project timeline. We will begin the implementation phase next Monday, following the successful completion of the preliminary research. All relevant stakeholders have been notified, and we anticipate a smooth transition.</textarea>
+        <button id="myExecuteButton" onclick="myExecuteRewriter()"
+            style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #4CAF50; border: none; border-radius: 5px; cursor: pointer;">Create
+            Session and Rewrite</button>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h2 style="margin-top: 0;">Status and Output</h2>
+        <p id="myStatus" style="font-style: italic; color: #555;">Ready. Paste text and click the button.</p>
+        <textarea id="myOutput" rows="5" readonly
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #eee; box-sizing: border-box; margin-top: 10px;"></textarea>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>A Note on Chrome Flags</h2>
+        <p>To use this feature, you must have the required flags enabled in Chrome. Open a new tab, paste the links below, press Enter, enable the flags, and then restart Chrome.</p>
+        <input type="text" id="flagsLink1" value="chrome://flags/#writing-assistance-api" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer; margin-bottom: 5px;"
+            onclick="myCopyAndOpen(this)">
+        <input type="text" id="flagsLink2" value="chrome://flags/#optimization-guide-on-device-model" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer;"
+            onclick="myCopyAndOpen(this)">
+        <br>
+        <button onclick="myCopyAndOpen(document.getElementById('flagsLink1'))" style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Rewriter API Flag</button>
+        <button onclick="myCopyAndOpen(document.getElementById('flagsLink2'))" style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer; margin-left: 10px;">Copy Model Flag</button>
+    </div>
+
+    <hr style="margin: 40px 0;">
+   
+    <div>
+        <h2>My GitHub</h2>
+        <p>You can find more of my work on my <a href="https://github.com/hpssjellis"> hpssjellis </a> GitHub page:</p>
+        <p> By Jeremy Ellis <a href="https://ca.linkedin.com/in/jeremy-ellis-4237a9bb"> LinkedIn </a><br></p>
+    </div>
+
+    <script>
+        // Use my descriptive names and camelCase
+        let myTimerInterval = null;
+        let myRewriter = null; // Store rewriter instance
+
+        // Function to start a simple timer to show activity
+        function myStartTimer() {
+            let mySeconds = 0;
+            const myStatus = document.getElementById('myStatus');
+            myStatus.textContent = "Working... 0s";
+            myTimerInterval = setInterval(() => {
+                mySeconds++;
+                myStatus.textContent = `Working... ${mySeconds}s`;
+            }, 1000);
+        }
+
+        // Function to stop the timer and set the final status
+        function myStopTimer(myMessage) {
+            if (myTimerInterval) {
+                clearInterval(myTimerInterval);
+                myTimerInterval = null;
+            }
+            const myStatus = document.getElementById('myStatus');
+            myStatus.textContent = myMessage;
+        }
+
+        // Main function to create the session and execute the rewriter
+        async function myExecuteRewriter() {
+            const myTextInput = document.getElementById('myTextInput');
+            const myOutput = document.getElementById('myOutput');
+            const myStatus = document.getElementById('myStatus');
+            const myExecuteButton = document.getElementById('myExecuteButton');
+
+            myExecuteButton.disabled = true;
+            myExecuteButton.style.backgroundColor = '#ccc';
+
+            try {
+                // Check if Rewriter API is available
+                if (!window.ai || !window.ai.rewriter) {
+                    myStopTimer("Error: Rewriter API not available. Check Chrome version and flags.");
+                    return;
+                }
+
+                // Check availability first
+                const availability = await window.ai.rewriter.capabilities();
+                
+                if (availability.available === "no") {
+                    myStopTimer("Error: Rewriter not available. Please check chrome://on-device-internals for model status.");
+                    return;
+                }
+
+                if (availability.available === "after-download") {
+                    myStopTimer("Rewriter model needs to be downloaded. Please wait and try again later.");
+                    return;
+                }
+
+                myStartTimer();
+                myOutput.value = "";
+
+                const myTextValue = myTextInput.value;
+                if (!myTextValue.trim()) {
+                    myStopTimer('Please enter text to rewrite.');
+                    return;
+                }
+
+                // Create rewriter with proper language configuration if not already created
+                if (!myRewriter) {
+                    myStatus.textContent = 'Creating rewriter session...';
+                    
+                    // Rewriter API uses sharedContext to set language/behavior
+                    myRewriter = await window.ai.rewriter.create({
+                        sharedContext: 'You are a helpful rewriting assistant that rephrases content in English.',
+                        tone: 'as-is',
+                        format: 'as-is',
+                        length: 'as-is'
+                    });
+                }
+
+                myStatus.textContent = 'Rewriting text...';
+
+                // Use the rewrite() method on the rewriter instance
+                const myRewrittenText = await myRewriter.rewrite(myTextValue);
+                myOutput.value = myRewrittenText;
+                myStopTimer("Rewrite complete!");
+
+            } catch (myError) {
+                myRewriter = null; // Reset on error
+                
+                let errorMessage = "An error occurred: " + myError.message;
+                
+                if (myError.message && myError.message.includes('not available')) {
+                    errorMessage = "Rewriter API not available. Ensure flags are enabled and model is downloaded.";
+                } else if (myError.message && myError.message.includes('language')) {
+                    errorMessage = "Language configuration error. The model supports English, Spanish, and Japanese.";
+                }
+                
+                myStopTimer(errorMessage);
+                console.error("Error:", myError);
+            } finally {
+                myExecuteButton.disabled = false;
+                myExecuteButton.style.backgroundColor = '#4CAF50';
+            }
+        }
+
+        // Helper function to copy the flags link and open a new tab
+        function myCopyAndOpen(inputElement) {
+            inputElement.select();
+            inputElement.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            window.open('about:blank', '_blank');
+        }
+    </script>
+</body>
+</html>
