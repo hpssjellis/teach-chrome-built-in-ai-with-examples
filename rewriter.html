@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome AI: Simple Writer Example</title>
+</head>
+
+<body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px;">
+    <h1 style="color: #4CAF50;">Chrome Built-in AI: Simple Writer</h1>
+    <p>This example shows how to use the <code>ai.writer.write()</code> method to generate new text from a given topic. This is a non-streaming operation.</p>
+
+    <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <h2 style="margin-top: 0;">Topic to Write About</h2>
+        <textarea id="myTopicInput" rows="5" placeholder="Enter a topic for the model to write about..."
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">Write a product description for a smart coffee mug.</textarea>
+        <button id="myExecuteButton" onclick="myExecuteWriter()"
+            style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #4CAF50; border: none; border-radius: 5px; cursor: pointer;">Create
+            Session and Write</button>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h2 style="margin-top: 0;">Status and Output</h2>
+        <p id="myStatus" style="font-style: italic; color: #555;">Ready. Enter a topic and click the button.</p>
+        <textarea id="myOutput" rows="10" readonly
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #eee; box-sizing: border-box; margin-top: 10px;"></textarea>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>A Note on Chrome Flags</h2>
+        <p>To use this feature, you must have the required flags enabled in Chrome. Open a new tab, paste the links below, press Enter, enable the flags, and then restart Chrome.</p>
+        <input type="text" id="flagsLink1" value="chrome://flags/#writing-assistance-api" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer; margin-bottom: 5px;"
+            onclick="myCopyAndOpen(this)">
+        <input type="text" id="flagsLink2" value="chrome://flags/#optimization-guide-on-device-model" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer;"
+            onclick="myCopyAndOpen(this)">
+        <br>
+        <button onclick="myCopyAndOpen(document.getElementById('flagsLink1'))" style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Writer API Flag</button>
+        <button onclick="myCopyAndOpen(document.getElementById('flagsLink2'))" style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer; margin-left: 10px;">Copy Model Flag</button>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>My GitHub</h2>
+        <p>You can find more of my work on my <a href="https://github.com/hpssjellis"> hpssjellis </a> GitHub page:</p>
+        <p> By Jeremy Ellis <a href="https://ca.linkedin.com/in/jeremy-ellis-4237a9bb"> LinkedIn </a><br></p>
+    </div>
+
+    <script>
+        // Use my descriptive names and camelCase
+        let myTimerInterval = null;
+        let myWriter = null; // Store writer instance
+
+        // Function to start a simple timer to show activity
+        function myStartTimer() {
+            let mySeconds = 0;
+            const myStatus = document.getElementById('myStatus');
+            myStatus.textContent = "Working... 0s";
+            myTimerInterval = setInterval(() => {
+                mySeconds++;
+                myStatus.textContent = `Working... ${mySeconds}s`;
+            }, 1000);
+        }
+
+        // Function to stop the timer and set the final status
+        function myStopTimer(myMessage) {
+            if (myTimerInterval) {
+                clearInterval(myTimerInterval);
+                myTimerInterval = null;
+            }
+            const myStatus = document.getElementById('myStatus');
+            myStatus.textContent = myMessage;
+        }
+
+        // Main function to create the session and execute the writer
+        async function myExecuteWriter() {
+            const myTopicInput = document.getElementById('myTopicInput');
+            const myOutput = document.getElementById('myOutput');
+            const myStatus = document.getElementById('myStatus');
+            const myExecuteButton = document.getElementById('myExecuteButton');
+
+            myExecuteButton.disabled = true;
+            myExecuteButton.style.backgroundColor = '#ccc';
+
+            try {
+                // Check if Writer API is available
+                if (!window.ai || !window.ai.writer) {
+                    myStopTimer("Error: Writer API not available. Check Chrome version and flags.");
+                    return;
+                }
+
+                // Check availability first
+                const availability = await window.ai.writer.capabilities();
+                
+                if (availability.available === "no") {
+                    myStopTimer("Error: Writer not available. Please check chrome://on-device-internals for model status.");
+                    return;
+                }
+
+                if (availability.available === "after-download") {
+                    myStopTimer("Writer model needs to be downloaded. Please wait and try again later.");
+                    return;
+                }
+
+                myStartTimer();
+                myOutput.value = "";
+
+                const myTopicValue = myTopicInput.value;
+                if (!myTopicValue.trim()) {
+                    myStopTimer('Please enter a topic to write about.');
+                    return;
+                }
+
+                // Create writer with proper language configuration if not already created
+                if (!myWriter) {
+                    myStatus.textContent = 'Creating writer session...';
+                    
+                    // Writer API uses sharedContext to set language/behavior
+                    myWriter = await window.ai.writer.create({
+                        sharedContext: 'You are a helpful writing assistant that creates content in English.',
+                        tone: 'neutral',
+                        format: 'plain-text',
+                        length: 'medium'
+                    });
+                }
+
+                myStatus.textContent = 'Generating text...';
+
+                // Use the write() method on the writer instance
+                const myGeneratedText = await myWriter.write(myTopicValue);
+                myOutput.value = myGeneratedText;
+                myStopTimer("Writing complete!");
+
+            } catch (myError) {
+                myWriter = null; // Reset on error
+                
+                let errorMessage = "An error occurred: " + myError.message;
+                
+                if (myError.message && myError.message.includes('not available')) {
+                    errorMessage = "Writer API not available. Ensure flags are enabled and model is downloaded.";
+                } else if (myError.message && myError.message.includes('language')) {
+                    errorMessage = "Language configuration error. The model supports English, Spanish, and Japanese.";
+                }
+                
+                myStopTimer(errorMessage);
+                console.error("Error:", myError);
+            } finally {
+                myExecuteButton.disabled = false;
+                myExecuteButton.style.backgroundColor = '#4CAF50';
+            }
+        }
+
+        // Helper function to copy the flags link and open a new tab
+        function myCopyAndOpen(inputElement) {
+            inputElement.select();
+            inputElement.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            window.open('about:blank', '_blank');
+        }
+    </script>
+</body>
+
+</html>
