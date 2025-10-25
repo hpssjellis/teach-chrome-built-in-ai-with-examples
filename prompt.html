@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome AI: Simple Prompt Example</title>
+</head>
+
+<body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px;">
+    <h1 style="color: #4CAF50;">Chrome Built-in AI: Simple Prompt</h1>
+    <p>This simple example shows how to use the <code>ai.languageModel.prompt()</code> method, which sends a one-off text prompt to the built-in AI model and returns a single, complete response. It is a non-streaming operation.</p>
+
+    <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <h2 style="margin-top: 0;">Your Prompt</h2>
+        <textarea id="myPromptInput" rows="5" placeholder="Enter your prompt here..."
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">Write a very short science fiction story about a robot and its first day at work.</textarea>
+        <button id="myExecuteButton" onclick="myExecutePrompt()"
+            style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #4CAF50; border: none; border-radius: 5px; cursor: pointer;">Create
+            Session and Prompt</button>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h2 style="margin-top: 0;">Status and Output</h2>
+        <p id="myStatus" style="font-style: italic; color: #555;">Ready. Enter a prompt and click the button.</p>
+        <textarea id="myOutput" rows="10" readonly
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #eee; box-sizing: border-box; margin-top: 10px;"></textarea>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>A Note on Chrome Flags</h2>
+        <p>To use this feature, you must have the required flags enabled in Chrome. Open a new tab, paste the links below, press Enter, enable the flags, and then restart Chrome.</p>
+        <input type="text" id="flagsLink1" value="chrome://flags/#prompt-api-for-gemini-nano" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer; margin-bottom: 5px;"
+            onclick="myCopyAndOpen(this)">
+        <input type="text" id="flagsLink2" value="chrome://flags/#optimization-guide-on-device-model" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer;"
+            onclick="myCopyAndOpen(this)">
+        <br>
+        <button onclick="myCopyAndOpen(document.getElementById('flagsLink1'))" style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Prompt API Flag</button>
+        <button onclick="myCopyAndOpen(document.getElementById('flagsLink2'))" style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer; margin-left: 10px;">Copy Model Flag</button>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>My GitHub</h2>
+        <p>You can find more of my work on my <a href="https://github.com/hpssjellis"> hpssjellis </a> GitHub page:</p>
+        <p> By Jeremy Ellis <a href="https://ca.linkedin.com/in/jeremy-ellis-4237a9bb"> LinkedIn </a><br></p>
+    </div>
+
+    <script>
+        // Use my descriptive names and camelCase
+        let myLanguageModelSession = null;
+        let myTimerInterval = null;
+
+        // Function to start a simple timer to show activity
+        function myStartTimer() {
+            const myStatus = document.getElementById('myStatus');
+            let mySeconds = 0;
+            myStatus.textContent = "Working... 0s";
+            myTimerInterval = setInterval(() => {
+                mySeconds++;
+                myStatus.textContent = `Working... ${mySeconds}s`;
+            }, 1000);
+        }
+
+        // Function to stop the timer and set the final status
+        function myStopTimer(myMessage) {
+            if (myTimerInterval) {
+                clearInterval(myTimerInterval);
+                myTimerInterval = null;
+            }
+            const myStatus = document.getElementById('myStatus');
+            myStatus.textContent = myMessage;
+        }
+
+        // Main function to create the session and execute the prompt
+        async function myExecutePrompt() {
+            const myPromptInput = document.getElementById('myPromptInput');
+            const myOutput = document.getElementById('myOutput');
+            const myStatus = document.getElementById('myStatus');
+            const myExecuteButton = document.getElementById('myExecuteButton');
+
+            // Disable the button to prevent multiple calls
+            myExecuteButton.disabled = true;
+            myExecuteButton.style.backgroundColor = '#ccc';
+
+            try {
+                // Check if the API is available
+                if (!window.ai || !window.ai.languageModel) {
+                    myStopTimer("Error: AI Language Model API not available. Make sure you are using Chrome 127+ with the required flags enabled.");
+                    return;
+                }
+
+                // Check capabilities first
+                myStatus.textContent = 'Checking AI availability...';
+                const capabilities = await window.ai.languageModel.capabilities();
+                
+                if (capabilities.available === "no") {
+                    myStopTimer("Error: AI model not available. Please check chrome://on-device-internals for model status.");
+                    return;
+                }
+
+                if (capabilities.available === "after-download") {
+                    myStopTimer("AI model needs to be downloaded. Please wait and try again later. Check chrome://on-device-internals for download progress.");
+                    return;
+                }
+
+                // Start the timer to show progress
+                myStartTimer();
+                myOutput.value = "";
+
+                // Create the session if it doesn't exist
+                if (!myLanguageModelSession) {
+                    myStatus.textContent = 'Creating AI session...';
+                    
+                    // Create session with language configuration to avoid errors
+                    myLanguageModelSession = await window.ai.languageModel.create({
+                        systemPrompt: "You are a helpful assistant that responds in English."
+                    });
+                    
+                    myStatus.textContent = 'Session created. Sending prompt...';
+                }
+
+                const myPromptValue = myPromptInput.value;
+                if (!myPromptValue.trim()) {
+                    myStopTimer('Please enter a prompt.');
+                    return;
+                }
+
+                // Execute the prompt and get the full response
+                const myResponse = await myLanguageModelSession.prompt(myPromptValue);
+                myOutput.value = myResponse;
+                myStopTimer("Prompt complete!");
+
+            } catch (myError) {
+                let errorMessage = "An error occurred: " + myError.message;
+                
+                // Handle specific error cases
+                if (myError.message && myError.message.includes("not available")) {
+                    errorMessage = "AI model not available. Ensure you have enabled the required flags and the model is downloaded.";
+                } else if (myError.message && myError.message.includes("language")) {
+                    errorMessage = "Language configuration error. The model currently supports English, Spanish, and Japanese.";
+                }
+                
+                myStopTimer(errorMessage);
+                console.error("Error:", myError);
+            } finally {
+                // Re-enable the button
+                myExecuteButton.disabled = false;
+                myExecuteButton.style.backgroundColor = '#4CAF50';
+            }
+        }
+
+        // Helper function to copy the flags link and open a new tab
+        function myCopyAndOpen(inputElement) {
+            inputElement.select();
+            inputElement.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            window.open('about:blank', '_blank');
+        }
+    </script>
+</body>
+</html>
