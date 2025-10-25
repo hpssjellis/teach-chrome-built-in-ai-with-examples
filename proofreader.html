@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome AI: Proofreader</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #4CAF50;
+        }
+
+        .my-container {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .my-output-container {
+            margin-top: 20px;
+        }
+
+        #myOutput {
+            min-height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #eee;
+            white-space: pre-wrap;
+            margin-top: 10px;
+        }
+
+        #myStatus {
+            font-style: italic;
+            color: #555;
+        }
+
+        .error {
+            background-color: #ffe6e6;
+            text-decoration: underline wavy red;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .correction-tooltip {
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 300px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Chrome Built-in AI: Proofreader</h1>
+    <p>This application uses the Chrome Built-in AI Proofreader API to check text for grammar, spelling, and punctuation errors.</p>
+
+    <div class="my-container">
+        <h2>Proofread My Text</h2>
+        <textarea id="myProofreaderInput" rows="10">Hello my name is Jeremy. i realy like teh new tool its a verry good way to teach students how to code becaus it is simple. I hope this helps you.</textarea>
+        <button onclick="myProcessProofread()">Proofread Text</button>
+    </div>
+
+    <div class="my-output-container">
+        <h2>Status and Output</h2>
+        <p id="myStatus">Ready.</p>
+        <div id="myOutput"></div>
+        <div style="margin-top: 15px;">
+            <h3>Corrected Text:</h3>
+            <div id="myCorrectedText" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #f0fff0; min-height: 50px;"></div>
+        </div>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>A Note on Chrome Flags and Origin Trial</h2>
+        <p>To use this feature, you must have the Proofreader API flag enabled in Chrome AND register for the origin trial. Open a new tab, paste the link below, press Enter, enable the flag, and then restart Chrome.</p>
+        <input type="text" id="flagsLink" value="chrome://flags/#proofreader-api-for-gemini-nano" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer;"
+            onclick="myCopyFlagsLink()">
+        <br>
+        <button onclick="myCopyFlagsLink()"
+            style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Link & Open New Tab</button>
+        <p style="margin-top: 15px;"><strong>Note:</strong> The Proofreader API is currently in origin trial (Chrome 141-145). You may need to register at: <a href="https://developer.chrome.com/origintrials/#/registration/2794008579760193537" target="_blank">Proofreader API Origin Trial</a></p>
+    </div>
+
+    <div>
+        <h2>My GitHub</h2>
+        <p>You can find more of my work on my <a href="https://github.com/hpssjellis"> hpssjellis </a> GitHub page:</p>
+        <p> By Jeremy Ellis <a href="https://ca.linkedin.com/in/jeremy-ellis-4237a9bb"> LinkedIn </a><br></p>
+    </div>
+
+    <script>
+        // Use my descriptive names and camelCase
+        let myProofreaderSession = null;
+        let myTimerInterval = null;
+        const myStatus = document.getElementById('myStatus');
+        const myOutput = document.getElementById('myOutput');
+        const myCorrectedText = document.getElementById('myCorrectedText');
+
+        // Function to start a simple timer
+        function myStartTimer() {
+            let mySeconds = 0;
+            myStatus.textContent = "Working... 0s";
+            myTimerInterval = setInterval(() => {
+                mySeconds++;
+                myStatus.textContent = `Working... ${mySeconds}s`;
+            }, 1000);
+        }
+
+        // Function to stop the timer
+        function myStopTimer(myMessage) {
+            if (myTimerInterval) {
+                clearInterval(myTimerInterval);
+                myTimerInterval = null;
+            }
+            myStatus.textContent = myMessage;
+        }
+
+        // Helper function to copy the flags link
+        function myCopyFlagsLink() {
+            const myFlagsInput = document.getElementById('flagsLink');
+            myFlagsInput.select();
+            myFlagsInput.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            window.open('about:blank', '_blank');
+        }
+
+        // Main function to process the proofreading request using the Proofreader API
+        async function myProcessProofread() {
+            const myTextToProofread = document.getElementById('myProofreaderInput').value.trim();
+            myOutput.innerHTML = "";
+            myCorrectedText.textContent = "";
+
+            if (!myTextToProofread) {
+                myStatus.textContent = "Please enter text to proofread.";
+                return;
+            }
+
+            myStartTimer();
+
+            try {
+                // Check if Proofreader API is available
+                if (!window.Proofreader) {
+                    myStopTimer("Error: Proofreader API not available. Make sure you are using Chrome 141+ with the proofreader flag enabled and have registered for the origin trial.");
+                    return;
+                }
+
+                // Check availability
+                const availability = await Proofreader.capabilities();
+                
+                if (availability.available === "no") {
+                    myStopTimer("Error: Proofreader not available. Check chrome://on-device-internals for model status.");
+                    return;
+                }
+
+                if (availability.available === "after-download") {
+                    myStopTimer("Proofreader model needs to be downloaded. Please wait and try again later.");
+                    return;
+                }
+
+                // Create proofreader session with language configuration
+                if (!myProofreaderSession) {
+                    myStatus.textContent = 'Creating Proofreader session...';
+                    
+                    myProofreaderSession = await Proofreader.create({
+                        expectedInputLanguages: ["en"],  // Critical: Set expected input language!
+                        monitor(m) {
+                            m.addEventListener("downloadprogress", e => {
+                                console.log(`Downloaded ${e.loaded * 100}%`);
+                                myStatus.textContent = `Downloading model: ${Math.round(e.loaded * 100)}%`;
+                            });
+                        }
+                    });
+                    
+                    myStatus.textContent = 'Proofreader ready. Processing...';
+                }
+
+                // Proofread the text
+                const myProofreadResult = await myProofreaderSession.proofread(myTextToProofread);
+                
+                // Display the fully corrected text
+                myCorrectedText.textContent = myProofreadResult.corrected;
+                
+                // Display the original text with corrections highlighted
+                let inputRenderIndex = 0;
+                
+                if (myProofreadResult.corrections.length === 0) {
+                    myOutput.innerHTML = '<p style="color: green;">✓ No errors found! Your text looks good.</p>';
+                } else {
+                    for (const correction of myProofreadResult.corrections) {
+                        // Render part of input that has no error
+                        if (correction.startIndex > inputRenderIndex) {
+                            const unchangedInput = document.createElement('span');
+                            unchangedInput.textContent = myTextToProofread.substring(inputRenderIndex, correction.startIndex);
+                            myOutput.appendChild(unchangedInput);
+                        }
+                        
+                        // Render part of input that has an error and highlight it
+                        const errorInput = document.createElement('span');
+                        errorInput.textContent = myTextToProofread.substring(correction.startIndex, correction.endIndex);
+                        errorInput.classList.add('error');
+                        errorInput.title = `${correction.type}: ${correction.correction}\n${correction.explanation || ''}`;
+                        myOutput.appendChild(errorInput);
+                        
+                        inputRenderIndex = correction.endIndex;
+                    }
+                    
+                    // Render the rest of the input that has no error
+                    if (inputRenderIndex !== myTextToProofread.length) {
+                        const unchangedInput = document.createElement('span');
+                        unchangedInput.textContent = myTextToProofread.substring(inputRenderIndex, myTextToProofread.length);
+                        myOutput.appendChild(unchangedInput);
+                    }
+                }
+                
+                myStopTimer(`Proofreading complete! Found ${myProofreadResult.corrections.length} correction(s).`);
+
+            } catch (myError) {
+                myProofreaderSession = null; // Reset on error
+                
+                let errorMessage = "An error occurred: " + myError.message;
+                
+                if (myError.message && myError.message.includes('not available')) {
+                    errorMessage = "Proofreader API not available. Ensure flag is enabled, model is downloaded, and you're registered for the origin trial.";
+                } else if (myError.message && myError.message.includes('language')) {
+                    errorMessage = "Language configuration error. Currently only English is supported.";
+                }
+                
+                myStopTimer(errorMessage);
+                console.error("Error:", myError);
+            }
+        }
+    </script>
+</body>
+
+</html>
