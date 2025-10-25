@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome AI: Simple Summarizer Example</title>
+</head>
+
+<body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px;">
+    <h1 style="color: #4CAF50;">Chrome Built-in AI: Simple Summarizer</h1>
+    <p>This example now correctly uses the two-step **<code>ai.summarizer.create()</code>** and **<code>summarizer.summarize()</code>** method as described in the Chrome developer documentation. The initial click will create and download the necessary AI model.</p>
+
+    <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+        <h2 style="margin-top: 0;">Text to Summarize</h2>
+        <textarea id="myTextInput" rows="10" placeholder="Paste a long text here..."
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">Artificial Intelligence (AI) is a wide-ranging branch of computer science concerned with building smart machines capable of performing tasks that typically require human intelligence. This encompasses everything from learning, reasoning, problem-solving, perception, and language understanding. The field of AI has undergone several boom and bust cycles, but recent advancements, particularly in machine learning and deep learning, have led to unprecedented progress. Machine learning is a subset of AI that uses algorithms to allow systems to automatically learn and improve from experience without being explicitly programmed. Deep learning, in turn, is a subset of machine learning that utilizes neural networks with many layers (hence 'deep') to analyze complex data, such as images, sound, and text, with remarkable accuracy. These developments are rapidly transforming industries like healthcare, finance, and transportation, raising both excitement about new possibilities and ethical questions about job displacement and algorithmic bias. The goal is to create AI that can not only augment human capabilities but also address some of of the world's most challenging problems.</textarea>
+        <button id="myExecuteButton" onclick="myExecuteSummarizer()"
+            style="display: block; width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; color: white; background-color: #4CAF50; border: none; border-radius: 5px; cursor: pointer;">Initialize AI and Summarize</button>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h2 style="margin-top: 0;">Status and Output</h2>
+        <p id="myStatus" style="font-style: italic; color: #555;">Ready. Click the button to initialize the AI and summarize.</p>
+        <textarea id="myOutput" rows="5" readonly
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #eee; box-sizing: border-box; margin-top: 10px;"></textarea>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>A Note on Chrome Flags</h2>
+        <p>To use this feature, you must have the required flags enabled in Chrome. Open a new tab, paste the links below, press Enter, enable the flags, and then restart Chrome.</p>
+        <input type="text" id="flagsLink1" value="chrome://flags/#summarization-api-for-gemini-nano" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer; margin-bottom: 5px;"
+            onclick="myCopyAndOpen(this)">
+        <input type="text" id="flagsLink2" value="chrome://flags/#optimization-guide-on-device-model" readonly
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer;"
+            onclick="myCopyAndOpen(this)">
+        <br>
+        <button onclick="myCopyAndOpen(document.getElementById('flagsLink1'))" style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Summarizer Flag</button>
+        <button onclick="myCopyAndOpen(document.getElementById('flagsLink2'))" style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer; margin-left: 10px;">Copy Model Flag</button>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div>
+        <h2>My GitHub</h2>
+        <p>You can find more of my work on my <a href="https://github.com/hpssjellis"> hpssjellis </a> GitHub page:</p>
+        <p> By Jeremy Ellis <a href="https://ca.linkedin.com/in/jeremy-ellis-4237a9bb"> LinkedIn </a><br></p>
+    </div>
+
+    <script>
+        // Use my descriptive names and camelCase
+        let myTimerInterval = null;
+        let mySummarizer = null; // Global variable to store the Summarizer object
+
+        // Function to start a simple timer to show activity
+        function myStartTimer() {
+            let mySeconds = 0;
+            const myStatus = document.getElementById('myStatus');
+            myStatus.textContent = "Working... 0s";
+            myTimerInterval = setInterval(() => {
+                mySeconds++;
+                myStatus.textContent = `Working... ${mySeconds}s`;
+            }, 1000);
+        }
+
+        // Function to stop the timer and set the final status
+        function myStopTimer(myMessage) {
+            if (myTimerInterval) {
+                clearInterval(myTimerInterval);
+                myTimerInterval = null;
+            }
+            const myStatus = document.getElementById('myStatus');
+            myStatus.textContent = myMessage;
+        }
+
+        // Main function to execute the summarizer (FIXED)
+        async function myExecuteSummarizer() {
+            const myTextInput = document.getElementById('myTextInput');
+            const myOutput = document.getElementById('myOutput');
+            const myStatus = document.getElementById('myStatus');
+            const myExecuteButton = document.getElementById('myExecuteButton');
+
+            // Disable button and change color while working
+            myExecuteButton.disabled = true;
+            myExecuteButton.style.backgroundColor = '#ccc';
+
+            try {
+                // Check if the Summarizer API is available
+                if (!window.ai || !window.ai.summarizer) {
+                    myStopTimer("Error: Summarizer API not available. Check Chrome version (138+) and flags.");
+                    return;
+                }
+
+                // Check availability first
+                const availability = await window.ai.summarizer.capabilities();
+                
+                if (availability.available === "no") {
+                    myStopTimer("Error: Summarizer not available. Please check chrome://on-device-internals for model status.");
+                    return;
+                }
+
+                if (availability.available === "after-download") {
+                    myStopTimer("Summarizer model needs to be downloaded. Please wait and try again later.");
+                    return;
+                }
+
+                myStartTimer();
+                myOutput.value = "";
+
+                const myTextValue = myTextInput.value;
+                if (!myTextValue.trim()) {
+                    myStopTimer('Please enter text to summarize.');
+                    return;
+                }
+                
+                // STEP 1: Create the summarizer object if it hasn't been created yet.
+                if (mySummarizer === null) {
+                    myStatus.textContent = "Initializing AI model (first time setup/download)...";
+                    
+                    // Create with proper language configuration to avoid errors
+                    const myOptions = {
+                        type: 'key-points',
+                        length: 'medium',
+                        sharedContext: 'Summarize content in clear, concise English.',
+                        format: 'plain-text'
+                    };
+                    
+                    mySummarizer = await window.ai.summarizer.create(myOptions);
+                }
+
+                // STEP 2: Use the created object to perform the summarization
+                myStatus.textContent = "Requesting summary from Chrome AI...";
+                
+                // The summarize() call takes the text and an optional context object.
+                const mySummary = await mySummarizer.summarize(myTextValue);
+                
+                myOutput.value = mySummary;
+                myStopTimer("Summarization complete! (Click to run again)");
+
+            } catch (myError) {
+                // Log and inform the user of the error
+                mySummarizer = null; // Reset object on failure to try creation again
+                
+                let errorMessage = "An error occurred: " + myError.message;
+                
+                if (myError.message && myError.message.includes('not supported')) {
+                    errorMessage = "Error: Summarizer API not supported. Ensure flags are enabled.";
+                } else if (myError.message && myError.message.includes('permission')) {
+                    errorMessage = "Error: Permission denied. Check Chrome's built-in AI settings.";
+                } else if (myError.message && myError.message.includes('language')) {
+                    errorMessage = "Language configuration error. The model supports English, Spanish, and Japanese.";
+                }
+                
+                myStopTimer(errorMessage);
+                console.error("Chrome Summarizer API Error:", myError);
+            } finally {
+                // Re-enable button and restore color
+                myExecuteButton.disabled = false;
+                myExecuteButton.style.backgroundColor = '#4CAF50';
+            }
+        }
+
+        // Helper function to copy the flags link and open a new tab
+        function myCopyAndOpen(inputElement) {
+            inputElement.select();
+            inputElement.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            window.open('about:blank', '_blank');
+        }
+    </script>
+</body>
+
+</html>
