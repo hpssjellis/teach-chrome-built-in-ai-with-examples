@@ -68,32 +68,13 @@
             font-style: italic;
             color: #555;
         }
-
-        .error {
-            background-color: #ffe6e6;
-            text-decoration: underline wavy red;
-            cursor: pointer;
-            position: relative;
-        }
-
-        .correction-tooltip {
-            position: absolute;
-            background: #333;
-            color: white;
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            z-index: 1000;
-            max-width: 300px;
-            display: none;
-        }
     </style>
 </head>
 
 <body>
 
     <h1>Chrome Built-in AI: Proofreader</h1>
-    <p>This application uses the Chrome Built-in AI Proofreader API to check text for grammar, spelling, and punctuation errors.</p>
+    <p>This application uses the Chrome Built-in AI to proofread text for grammar, spelling, and punctuation.</p>
 
     <div class="my-container">
         <h2>Proofread My Text</h2>
@@ -105,24 +86,20 @@
         <h2>Status and Output</h2>
         <p id="myStatus">Ready.</p>
         <div id="myOutput"></div>
-        <div style="margin-top: 15px;">
-            <h3>Corrected Text:</h3>
-            <div id="myCorrectedText" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; background-color: #f0fff0; min-height: 50px;"></div>
-        </div>
     </div>
 
     <hr style="margin: 40px 0;">
 
     <div>
-        <h2>A Note on Chrome Flags and Origin Trial</h2>
-        <p>To use this feature, you must have the Proofreader API flag enabled in Chrome AND register for the origin trial. Open a new tab, paste the link below, press Enter, enable the flag, and then restart Chrome.</p>
-        <input type="text" id="flagsLink" value="chrome://flags/#proofreader-api-for-gemini-nano" readonly
+        <h2>A Note on Chrome Flags</h2>
+        <p>To use this feature, you must have the "Enable built-in AI" flag enabled in Chrome. Open a new tab, paste the link below, press Enter, enable the flag, and then restart Chrome.</p>
+        <input type="text" id="flagsLink" value="chrome://flags/#prompt-api-for-gemini-nano" readonly
             style="width: 100%; padding: 8px; border: 1px solid #ccc; background-color: #f0f0f0; cursor: pointer;"
             onclick="myCopyFlagsLink()">
         <br>
         <button onclick="myCopyFlagsLink()"
-            style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Link & Open New Tab</button>
-        <p style="margin-top: 15px;"><strong>Note:</strong> The Proofreader API is currently in origin trial (Chrome 141-145). You may need to register at: <a href="https://developer.chrome.com/origintrials/#/registration/2794008579760193537" target="_blank">Proofreader API Origin Trial</a></p>
+            style="margin-top: 10px; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Copy Link & Open New
+            Tab</button>
     </div>
 
     <div>
@@ -133,11 +110,10 @@
 
     <script>
         // Use my descriptive names and camelCase
-        let myProofreaderSession = null;
+        let myLanguageModelSession = null;
         let myTimerInterval = null;
         const myStatus = document.getElementById('myStatus');
         const myOutput = document.getElementById('myOutput');
-        const myCorrectedText = document.getElementById('myCorrectedText');
 
         // Function to start a simple timer
         function myStartTimer() {
@@ -167,11 +143,10 @@
             window.open('about:blank', '_blank');
         }
 
-        // Main function to process the proofreading request using the Proofreader API
+        // Main function to process the proofreading request
         async function myProcessProofread() {
             const myTextToProofread = document.getElementById('myProofreaderInput').value.trim();
-            myOutput.innerHTML = "";
-            myCorrectedText.textContent = "";
+            myOutput.textContent = "";
 
             if (!myTextToProofread) {
                 myStatus.textContent = "Please enter text to proofread.";
@@ -181,94 +156,33 @@
             myStartTimer();
 
             try {
-                // Check if Proofreader API is available
-                if (!window.Proofreader) {
-                    myStopTimer("Error: Proofreader API not available. Make sure you are using Chrome 141+ with the proofreader flag enabled and have registered for the origin trial.");
+                if (!('LanguageModel' in window)) {
+                    myStopTimer("Error: LanguageModel API not available. Make sure you are using a compatible Chrome version with the 'Enable built-in AI' flag turned on.");
                     return;
                 }
 
-                // Check availability
-                const availability = await Proofreader.capabilities();
-                
-                if (availability.available === "no") {
-                    myStopTimer("Error: Proofreader not available. Check chrome://on-device-internals for model status.");
-                    return;
-                }
-
-                if (availability.available === "after-download") {
-                    myStopTimer("Proofreader model needs to be downloaded. Please wait and try again later.");
-                    return;
-                }
-
-                // Create proofreader session with language configuration
-                if (!myProofreaderSession) {
-                    myStatus.textContent = 'Creating Proofreader session...';
-                    
-                    myProofreaderSession = await Proofreader.create({
-                        expectedInputLanguages: ["en"],  // Critical: Set expected input language!
-                        monitor(m) {
-                            m.addEventListener("downloadprogress", e => {
-                                console.log(`Downloaded ${e.loaded * 100}%`);
-                                myStatus.textContent = `Downloading model: ${Math.round(e.loaded * 100)}%`;
-                            });
-                        }
+                if (!myLanguageModelSession) {
+                    myStatus.textContent = 'Creating AI session...';
+                    // Add outputLanguage to eliminate the warning
+                    myLanguageModelSession = await LanguageModel.create({
+                        outputLanguage: 'en'
                     });
-                    
-                    myStatus.textContent = 'Proofreader ready. Processing...';
+                    myStatus.textContent = 'Session created. Processing...';
                 }
 
-                // Proofread the text
-                const myProofreadResult = await myProofreaderSession.proofread(myTextToProofread);
+                // The key is this specific prompt to get a corrected version
+                const myProofreadPrompt = `Proofread the following text for spelling, grammar, and punctuation. Respond with the corrected text only:\n\n${myTextToProofread}`;
                 
-                // Display the fully corrected text
-                myCorrectedText.textContent = myProofreadResult.corrected;
+                // Add outputLanguage to the prompt call to eliminate the warning
+                const myProofreadResult = await myLanguageModelSession.prompt(myProofreadPrompt, {
+                    outputLanguage: 'en'
+                });
                 
-                // Display the original text with corrections highlighted
-                let inputRenderIndex = 0;
-                
-                if (myProofreadResult.corrections.length === 0) {
-                    myOutput.innerHTML = '<p style="color: green;">✓ No errors found! Your text looks good.</p>';
-                } else {
-                    for (const correction of myProofreadResult.corrections) {
-                        // Render part of input that has no error
-                        if (correction.startIndex > inputRenderIndex) {
-                            const unchangedInput = document.createElement('span');
-                            unchangedInput.textContent = myTextToProofread.substring(inputRenderIndex, correction.startIndex);
-                            myOutput.appendChild(unchangedInput);
-                        }
-                        
-                        // Render part of input that has an error and highlight it
-                        const errorInput = document.createElement('span');
-                        errorInput.textContent = myTextToProofread.substring(correction.startIndex, correction.endIndex);
-                        errorInput.classList.add('error');
-                        errorInput.title = `${correction.type}: ${correction.correction}\n${correction.explanation || ''}`;
-                        myOutput.appendChild(errorInput);
-                        
-                        inputRenderIndex = correction.endIndex;
-                    }
-                    
-                    // Render the rest of the input that has no error
-                    if (inputRenderIndex !== myTextToProofread.length) {
-                        const unchangedInput = document.createElement('span');
-                        unchangedInput.textContent = myTextToProofread.substring(inputRenderIndex, myTextToProofread.length);
-                        myOutput.appendChild(unchangedInput);
-                    }
-                }
-                
-                myStopTimer(`Proofreading complete! Found ${myProofreadResult.corrections.length} correction(s).`);
+                myOutput.textContent = myProofreadResult;
+                myStopTimer("Proofreading complete!");
 
             } catch (myError) {
-                myProofreaderSession = null; // Reset on error
-                
-                let errorMessage = "An error occurred: " + myError.message;
-                
-                if (myError.message && myError.message.includes('not available')) {
-                    errorMessage = "Proofreader API not available. Ensure flag is enabled, model is downloaded, and you're registered for the origin trial.";
-                } else if (myError.message && myError.message.includes('language')) {
-                    errorMessage = "Language configuration error. Currently only English is supported.";
-                }
-                
-                myStopTimer(errorMessage);
+                myStopTimer("An error occurred. Check the console for details.");
                 console.error("Error:", myError);
             }
         }
